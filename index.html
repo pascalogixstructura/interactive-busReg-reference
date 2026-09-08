@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pascalogix Structura | Atomic TODO Notebook (Drag & Drop)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #ffffff; color: #111111; font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .red-accent { color: #d32f2f; }
+        .bg-planner { background-color: #f9fafb; }
+
+        .task-card {
+            background: #ffffff; border: 1px solid #e5e7eb; border-radius: 2px; padding: 0.5rem;
+            cursor: grab; transition: all 0.2s ease; margin-bottom: 0.25rem; font-size: 0.8rem;
+        }
+        .task-card:hover { border-color: #111111; background: #f9fafb; }
+        .task-card.selected { border: 2px solid #d32f2f; background: #fff5f5; cursor: grabbing; }
+
+        .planner-slot {
+            background: #ffffff; border: 2px dashed #cbd5e1; border-radius: 2px; min-height: 80px;
+            margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 0.5rem; color: #9ca3af; font-size: 0.75rem; transition: all 0.2s ease;
+            position: relative;
+        }
+        .planner-slot.drag-over { border-color: #d32f2f; background: #fff5f5; }
+        .planner-slot.filled { border: 1px solid #111111; background: #ffffff; color: #111111; justify-content: flex-start; text-align: left; cursor: default; }
+
+        .notebook-entry { width: 100%; border-left: 3px solid #d32f2f; padding-left: 12px; }
+        .task-title { font-weight: bold; margin-bottom: 0.25rem; }
+        .atomic-section { background: #f1f5f9; padding: 0.25rem; border-radius: 2px; margin-top: 0.25rem; font-size: 0.7rem; }
+        .atomic-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; color: #111111; font-weight: bold; margin-bottom: 0.1rem; }
+
+        .remove-btn {
+            position: absolute; top: 4px; right: 4px; color: #d32f2f; cursor: pointer;
+            font-size: 1.5rem; line-height: 1; padding: 0.4rem; background: #fff; border: 1px solid #d32f2f; border-radius: 2px;
+        }
+        .remove-btn:hover { background: #d32f2f; color: #fff; }
+
+        .generate-btn {
+            background: #111111; color: #ffffff; border: none; padding: 0.4rem 0.8rem; border-radius: 2px;
+            font-size: 0.75rem; margin-top: 0.5rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .generate-btn:hover { background: #d32f2f; }
+
+        .total-bar { background: #111111; color: #ffffff; padding: 0.75rem; text-align: center; font-size: 1rem; font-weight: bold; margin-top: 0.5rem; display: flex; justify-content: space-around; }
+        .total-bar .red-accent { color: #ffffff; }
+
+        .col-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #111111; border-bottom: 2px solid #111111; padding-bottom: 0.25rem; margin-bottom: 0.5rem; font-weight: bold; text-align: center; }
+        .date-input { font-size: 0.7rem; border: 1px solid #ccc; padding: 2px 4px; border-radius: 2px; margin-top: 4px; width: 45%; float: right; margin-left: 10px; }
+
+        .phase-detail { background: #e2e8f0; border: 1px solid #e5e7eb; padding: 1rem; margin-top: 1rem; }
+        .static-plan-header { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #111111; padding-bottom: 1rem; margin-bottom: 2rem; }
+        .phase-block { border-left: 4px solid #d32f2f; padding-left: 1.5rem; margin-bottom: 2.5rem; }
+        .phase-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; display: none; align-items: center; justify-content: center; }
+        .modal-content { background: #ffffff; border: 1px solid #111; max-width: 600px; width: 90%; padding: 2rem; max-height: 90vh; overflow-y: auto; border-radius: 2px; }
+        .modal-field { margin-bottom: 1rem; }
+        .modal-field label { display: block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
+        .modal-field input, .modal-field textarea, .modal-field select { width: 100%; border: 1px solid #ccc; padding: 0.5rem; font-size: 0.9rem; }
+        .proforma-output { white-space: pre-wrap; background: #f1f5f9; border: 1px solid #e5e7eb; padding: 1rem; font-family: monospace; font-size: 0.85rem; margin-top: 1rem; }
+        .btn-close { background: #111; color: #fff; border: none; padding: 0.5rem 1rem; cursor: pointer; margin-top: 1rem; text-transform: uppercase; font-size: 0.8rem; }
+        .btn-close:hover { background: #d32f2f; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="shrink-0 border-b border-black py-3 bg-white z-10">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <img src="insignia.png" alt="Pascalogix Structura" class="w-12 h-12 md:w-24 md:h-24 rounded-full border border-gray-300">
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight uppercase">Pascalogix Structura</h1>
+                    <p class="text-xs text-gray-500">V0.3.2C Drag & Drop Planner</p>
+                </div>
+            </div>
+            <button onclick="resetPlanner()" class="border border-black px-3 py-1 text-sm uppercase hover:bg-black hover:text-white transition-colors">Reset Planner</button>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- LEFT: Task Inventory -->
+            <section>
+                <h2 class="col-header">1. Atomic Task Inventory (Drag to Pick)</h2>
+                <div id="task-pool">
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">DTI Registration</h3>
+                    <div class="task-card" id="task-dti1" draggable="true">DTI BNRS Filing | PHP 200-1,000 | Payee: DTI | PERT: 1-3 Days</div>
+                    <div class="task-card" id="task-dti2" draggable="true">DTI Closure (Notice of Dissolution) | PHP 500 | Payee: DTI | PERT: 1-3 Days</div>
+                    <div class="task-card" id="task-dti3" draggable="true">DTI Affidavit Notarization | PHP 200-500 | Payee: Notary</div>
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">BIR Registration</h3>
+                    <div class="task-card" id="task-bir1" draggable="true">BIR COR Form 2303 | PHP 0 (ARF Abolished) | Payee: BIR | PERT: 3-7 Days</div>
+                    <div class="task-card" id="task-bir2" draggable="true">BIR DST | PHP 30 | Payee: BIR</div>
+                    <div class="task-card" id="task-bir3" draggable="true">Books & ATP Printing | PHP 1,000-3,000 | Payee: Accredited Printer</div>
+                    <div class="task-card" id="task-bir4" draggable="true">BIR Tax Clearance (Form 1905) | PHP 100 | Payee: BIR RDO | PERT: 20-30 Days</div>
+                    <div class="task-card" id="task-bir5" draggable="true">BIR Open Cases Settlement | PHP 1,000-5,000 | Payee: BIR</div>
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Professional Renewal</h3>
+                    <div class="task-card" id="task-prc1" draggable="true">PRC LERIS Renewal | PHP 450-1,200 | Payee: PRC | PERT: 1-5 Days</div>
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">OPC Formation (RA 11232)</h3>
+                    <div class="task-card" id="task-opc1" draggable="true">SEC OPC Filing Fee | PHP 1,000-2,000 | Payee: SEC | PERT: 5-10 Days</div>
+                    <div class="task-card" id="task-opc2" draggable="true">SEC By-Laws & Stock Book | PHP 870 | Payee: SEC</div>
+                    <div class="task-card" id="task-opc3" draggable="true">OPC DST (0.75%) | PHP 188-1,875 | Payee: BIR</div>
+                    <div class="task-card" id="task-opc4" draggable="true">Surety Bond (if self-treasurer) | PHP 5,000-10,000 | Payee: Bond Company</div>
+                    <div class="task-card" id="task-opc5" draggable="true">OPC Notarization | PHP 600-1,500 | Payee: Notary</div>
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">IPOPHL & LGU (Early)</h3>
+                    <div class="task-card" id="task-ipo1" draggable="true">IPOPHL Trademark Filing (REN/CORDS) | PHP 1,020 per class | Payee: IPOPHL | PERT: 8-12 mo</div>
+                    <div class="task-card" id="task-ipo2" draggable="true">IPOPHL Assignment Notarization | PHP 300 | Payee: Notary</div>
+                    <div class="task-card" id="task-lgu1" draggable="true">LGU Mayor's Permit | PHP 2,000-5,000 | Payee: LGU</div>
+                    <div class="task-card" id="task-lgu2" draggable="true">Barangay Clearance | PHP 500-1,000 | Payee: Barangay | PERT: 1-3 Days</div>
+                    <div class="task-card" id="task-lgu3" draggable="true">Sanitary Permit | PHP 500-1,500 | Payee: City Health</div>
+                    <div class="task-card" id="task-lgu4" draggable="true">Zoning Clearance | PHP 1,000-2,000 | Payee: Zoning Office | PERT: 5-7 Days</div>
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Insurance & Royalty</h3>
+                    <div class="task-card" id="task-ins1" draggable="true">E&O Insurance (Team $1M) | PHP 45,000-140,000 | Payee: Insurer</div>
+                    <div class="task-card" id="task-ins2" draggable="true">E&O Insurance (Enterprise $5M+) | PHP 170,000-450,000 | Payee: Insurer</div>
+                    <div class="task-card" id="task-ins3" draggable="true">Royalty Mechanism Trial | PHP 3,000 | Payee: Foundation</div>
+                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">FellowGrid & Grants</h3>
+                    <div class="task-card" id="task-fg1" draggable="true">100% SPA Execution | PHP 15,000-30,000 | Payee: Legal Counsel</div>
+                    <div class="task-card" id="task-fg2" draggable="true">Non-Stock Foundation Incorporation | PHP 15,000-30,000 | Payee: SEC</div>
+                    <div class="task-card" id="task-fg3" draggable="true">Grant Disbursement Trial | PHP 5,000 | Payee: Foundation</div>
+                </div>
+            </section>
+
+            <!-- RIGHT: Planner -->
+            <section>
+                <h2 class="col-header">2. TODO Notebook (Drop Here)</h2>
+                <div class="bg-planner p-4 border border-gray-200 rounded-sm" id="planner-container">
+                    <!-- 26 slots generated dynamically -->
+                </div>
+                <div class="total-bar">
+                    <span id="min-display">PHP 0</span>
+                    <span class="text-gray-400 text-sm">-</span>
+                    <span id="max-display">PHP 0</span>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- STATIC 126-DAY PLAN (same as before) -->
+    <section class="max-w-7xl w-full mx-auto p-6 border-t border-gray-300 bg-white">
+        <div class="static-plan-header">Full Static 126-Day Plan (Overview)</div>
+        <div class="phase-block">
+            <div class="phase-title">Phase 0: DTI National Setup (Days 0-21)</div>
+            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 2,030</span><span class="red-accent">Full: PHP 70,000</span></div>
+            <div class="phase-detail text-sm">Secure trade name "Pascalogix Structura" via DTI BNRS. ManuTest: PHP 500. Deliverable: DTI Certificate.</div>
+        </div>
+        <div class="phase-block">
+            <div class="phase-title">Phase 1: BIR COR & Professional Renewal (Days 21-42)</div>
+            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 1,480-4,230</span><span class="red-accent">Full: PHP 4,200-10,000</span></div>
+            <div class="phase-detail text-sm">BIR Form 2303, Books, ATP, and PRC LERIS Renewal. ManuTest: PHP 500 + 450. Note: ARF Abolished Jan 2024.</div>
+        </div>
+        <div class="phase-block">
+            <div class="phase-title">Phase 2: Liquidation + OPC Formation (Days 42-63)</div>
+            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 46,600</span><span class="red-accent">Full: PHP 255,600</span></div>
+            <div class="phase-detail text-sm">DTI Closure (PHP 500) + BIR Tax Clearance (PHP 100) via Form 1905, SEC OPC under RA 11232, Delaware LLC. ManuTest: PHP 500 + 1,000 + $1.</div>
+        </div>
+        <div class="phase-block">
+            <div class="phase-title">Phase 3: Early IPOPHL & LGU (Days 63-84)</div>
+            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 32,520-40,800</span><span class="red-accent">Full: PHP 165,800</span></div>
+            <div class="phase-detail text-sm">File REN + CORDS Trademarks (RA 8293) same day as SEC release. LGU Mayor's, Barangay, Sanitary, BFP, Zoning. ManuTest: PHP 1,520.</div>
+        </div>
+        <div class="phase-block">
+            <div class="phase-title">Phase 4: Insurance & Royalty (Days 84-105)</div>
+            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 30,000</span><span class="red-accent">Full: PHP 180,000</span></div>
+            <div class="phase-detail text-sm">$1M/$5M+ E&O insurance and 10% Royalty to Fellowship Foundation. ManuTest: PHP 3,000.</div>
+        </div>
+        <div class="phase-block">
+            <div class="phase-title">Phase 5: FellowGrid Transition & Grants (Days 105-126)</div>
+            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 27,500</span><span class="red-accent">Full: PHP 182,000</span></div>
+            <div class="phase-detail text-sm">100% SPA for FellowGrid, Non-stock Foundation incorporation, 10 practitioner grant cap. ManuTest: PHP 5,000.</div>
+        </div>
+        <div class="total-bar mt-8">
+            <span class="text-white">Lean Total: PHP 127,530 / USD 2,256</span>
+            <span class="text-gray-400">|</span>
+            <span class="text-white">Full Total: PHP 852,000 / USD 4,600</span>
+        </div>
+        <p class="text-center text-xs text-gray-500 mt-4">Governance: 70/5/10/15 Cap Table | S61 Firewall | Carved-Out Liability Cap PHP 500k / USD 8,900 | Bifurcated Arbitration: PDRCI Manila / SIAC Singapore | S64 IP Vault</p>
+    </section>
+
+    <!-- MODAL FOR PROFORMA GENERATOR (same as before) -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="text-xl font-bold uppercase mb-4">Generate Proforma</h2>
+            <div id="modalFields"></div>
+            <button onclick="generateProforma()" class="generate-btn w-full mt-4">Generate Proforma</button>
+            <div id="proformaOutput" class="proforma-output" style="display:none;"></div>
+            <button onclick="closeModal()" class="btn-close w-full mt-4">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let draggedTaskId = null;
+        let droppedTasks = [];
+        const totalSlots = 26;
+
+        const tasks = {
+            'dti1': { text: 'DTI BNRS Filing', min: 200, max: 1000, atoms: "Trade Name Reservation, DTI Certificate", granules: "DTI BNRS Form, DTI Payment Slip" },
+            'dti2': { text: 'DTI Closure / Dissolution', min: 500, max: 500, atoms: "Notice of Dissolution, DTI Closure Certificate", granules: "Notarized Affidavit of Closure, DTI Certificate of Registration" },
+            'dti3': { text: 'DTI Affidavit Notarization', min: 200, max: 500, atoms: "Affidavit of Closure (Notarized)", granules: "Notary Public Acknowledgment" },
+            'bir1': { text: 'BIR COR Form 2303', min: 0, max: 0, atoms: "BIR Certificate of Registration", granules: "BIR Form 2303, Valid ID, DTI Certificate" },
+            'bir2': { text: 'BIR DST', min: 30, max: 30, atoms: "Documentary Stamp Tax", granules: "BIR Form 0605, DST payment" },
+            'bir3': { text: 'Books & ATP Printing', min: 1000, max: 3000, atoms: "Manual/Loose-Leaf Books, Authority to Print", granules: "BIR ATP application, Books, Receipts" },
+            'bir4': { text: 'BIR Tax Clearance (Form 1905)', min: 100, max: 100, atoms: "Tax Clearance / No Outstanding Liabilities, BIR Closure", granules: "BIR Form 1905, Final Inventory, Affidavit of Closure, Original ORs/Books" },
+            'bir5': { text: 'BIR Open Cases Settlement', min: 1000, max: 5000, atoms: "Settlement of Open Assessments", granules: "BIR Form 0605, Audit Settlement Documentation" },
+            'prc1': { text: 'PRC LERIS Renewal', min: 450, max: 1200, atoms: "PRC License Renewal", granules: "PRC LERIS online form, CPD Units Certificate, Valid ID" },
+            'opc1': { text: 'SEC OPC Filing Fee', min: 1000, max: 2000, atoms: "SEC Certificate of Incorporation", granules: "Articles of Incorporation for OPC, Nominee & Alternate Consent" },
+            'opc2': { text: 'SEC By-Laws & Stock Book', min: 870, max: 870, atoms: "By-Laws, Stock Book", granules: "By-Laws Form, Stock Book Form" },
+            'opc3': { text: 'OPC DST (0.75%)', min: 188, max: 1875, atoms: "Documentary Stamp Tax on Capital", granules: "BIR Payment Form" },
+            'opc4': { text: 'Surety Bond (if self-treasurer)', min: 5000, max: 10000, atoms: "Surety Bond (Treasurer)", granules: "Bond Company Application, PRC Res 2200 exemption" },
+            'opc5': { text: 'OPC Notarization', min: 600, max: 1500, atoms: "Notarized Articles / Consents", granules: "Notary Public Acknowledgment" },
+            'ipo1': { text: 'IPOPHL Trademark (REN/CORDS)', min: 1020, max: 1020, atoms: "REN / CORDS Trademark Filing", granules: "IPOPHL eTM Form, Payment, Mark Specimen" },
+            'ipo2': { text: 'IPOPHL Assignment Notarization', min: 300, max: 300, atoms: "IPOPHL Assignment Notarization", granules: "Notarized Assignment Form" },
+            'lgu1': { text: "LGU Mayor's Permit", min: 2000, max: 5000, atoms: "Mayor's Permit / Business Permit", granules: "LGU Permit Application, BIR COR, DTI Cert" },
+            'lgu2': { text: 'Barangay Clearance', min: 500, max: 1000, atoms: "Barangay Clearance", granules: "Barangay Application, Valid ID" },
+            'lgu3': { text: 'Sanitary Permit', min: 500, max: 1500, atoms: "Sanitary Permit", granules: "City Health Office Application, Inspection" },
+            'lgu4': { text: 'Zoning Clearance', min: 1000, max: 2000, atoms: "Zoning Clearance", granules: "LGU Zoning Office Application, Lease Contract" },
+            'ins1': { text: 'E&O Insurance (Team $1M)', min: 45000, max: 140000, atoms: "$1M Errors & Omissions Coverage", granules: "Insurance Policy, Proof of Coverage" },
+            'ins2': { text: 'E&O Insurance (Enterprise $5M+)', min: 170000, max: 450000, atoms: "$5M+ Errors & Omissions Coverage", granules: "Insurance Policy, Proof of Coverage" },
+            'ins3': { text: 'Royalty Mechanism Trial', min: 3000, max: 3000, atoms: "10% Net Revenue Royalty Mechanism", granules: "Foundation Escrow Test, Royalty Agreement" },
+            'fg1': { text: '100% SPA Execution', min: 15000, max: 30000, atoms: "100% Share Purchase Agreement, Subsidiary Transition", granules: "SPA Contract, Stock Certificates" },
+            'fg2': { text: 'Non-Stock Foundation Inc.', min: 15000, max: 30000, atoms: "Non-Stock Foundation Incorporation", granules: "SEC Articles of Incorporation" },
+            'fg3': { text: 'Grant Disbursement Trial', min: 5000, max: 5000, atoms: "Non-Dilutive Grant Disbursement Trial", granules: "Grant Disbursement Ledger, Bank Proof" }
+        };
+
+        function getDefaultDate() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function initPlanner() {
+            const container = document.getElementById('planner-container');
+            container.innerHTML = '';
+            for(let i = 0; i < totalSlots; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'planner-slot';
+                slot.id = `slot-${i}`;
+                slot.dataset.slot = i;
+                slot.addEventListener('dragover', handleDragOver);
+                slot.addEventListener('dragleave', handleDragLeave);
+                slot.addEventListener('drop', handleDrop);
+                slot.innerHTML = `<span>Priority ${i+1} - Empty Notebook Slot</span>`;
+                container.appendChild(slot);
+            }
+        }
+
+        // Drag handlers
+        document.querySelectorAll('.task-card').forEach(card => {
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+        });
+
+        function handleDragStart(e) {
+            draggedTaskId = e.target.id.replace('task-', '');
+            e.dataTransfer.setData('text/plain', draggedTaskId);
+            e.target.classList.add('selected');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('selected');
+            draggedTaskId = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const taskId = e.dataTransfer.getData('text/plain');
+            const slotId = parseInt(e.currentTarget.dataset.slot);
+            if(!taskId || isNaN(slotId)) return;
+
+            // Check if task already placed
+            if(droppedTasks.find(task => task.id === taskId)) {
+                alert("This task is already in the planner. Remove it first.");
+                return;
+            }
+
+            const slot = e.currentTarget;
+            if(slot.classList.contains('filled')) {
+                alert("This slot is already filled.");
+                return;
+            }
+
+            const data = tasks[taskId];
+            const defaultDate = getDefaultDate();
+            droppedTasks.push({ id: taskId, data: data, slot: slotId });
+            updateSlot(slotId, data, defaultDate, taskId);
+            updateTotal();
+        }
+
+        function updateSlot(slotId, data, dateVal, taskId) {
+            const slot = document.getElementById(`slot-${slotId}`);
+            slot.classList.add('filled');
+            slot.innerHTML = `
+                <div class="notebook-entry">
+                    <div class="remove-btn" onclick="event.stopPropagation(); removeTask(${slotId})">×</div>
+                    <div class="task-title">Priority ${parseInt(slotId) + 1}: ${data.text}</div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="red-accent">Amount: PHP ${data.min.toLocaleString()} - PHP ${data.max.toLocaleString()}</span>
+                    </div>
+                    <input type="date" class="date-input" value="${dateVal}" onclick="event.stopPropagation();">
+                    <div class="atomic-section">
+                        <div class="atomic-label">Atoms (Main Deliverables)</div>
+                        <div class="text-gray-700">${data.atoms}</div>
+                    </div>
+                    <div class="atomic-section mt-2">
+                        <div class="atomic-label">Granules (Exact Paper Submission Requirements)</div>
+                        <div class="text-gray-700">${data.granules}</div>
+                    </div>
+                    <button class="generate-btn" onclick="event.stopPropagation(); openModal('${taskId}')">Generate Proforma</button>
+                </div>
+            `;
+        }
+
+        function removeTask(slotId) {
+            const slot = document.getElementById(`slot-${slotId}`);
+            slot.classList.remove('filled');
+            slot.innerHTML = `<span>Priority ${parseInt(slotId) + 1} - Empty Notebook Slot</span>`;
+            droppedTasks = droppedTasks.filter(task => task.slot !== slotId);
+            updateTotal();
+        }
+
+        function updateTotal() {
+            let totalMin = 0, totalMax = 0;
+            droppedTasks.forEach(task => {
+                totalMin += task.data.min;
+                totalMax += task.data.max;
+            });
+            document.getElementById('min-display').innerText = `PHP ${totalMin.toLocaleString()}`;
+            document.getElementById('max-display').innerText = `PHP ${totalMax.toLocaleString()}`;
+        }
+
+        function resetPlanner() {
+            droppedTasks = [];
+            for(let i = 0; i < totalSlots; i++) {
+                const slot = document.getElementById(`slot-${i}`);
+                slot.classList.remove('filled');
+                slot.innerHTML = `<span>Priority ${i+1} - Empty Notebook Slot</span>`;
+            }
+            updateTotal();
+        }
+
+        // Proforma Generator
+        const proformaFields = {
+            'dti1': ['Business Name', 'Owner Name', 'Address', 'Territorial Scope'],
+            'dti2': ['Business Name', 'Certificate No.', 'Owner Name', 'Reason for Closure'],
+            'dti3': ['Business Name', 'Owner Name', 'Date'],
+            'bir1': ['TIN', 'Business Name', 'RDO Code', 'Address'],
+            'bir2': ['TIN', 'Business Name', 'Document Type', 'Amount'],
+            'bir3': ['TIN', 'Business Name', 'Book Type', 'Printer Name'],
+            'bir4': ['TIN', 'Business Name', 'RDO Code', 'Reason for Closure'],
+            'bir5': ['TIN', 'Business Name', 'Assessment No.', 'Amount Due'],
+            'prc1': ['Full Name', 'License No.', 'Profession', 'Renewal Date'],
+            'opc1': ['Company Name', 'Stockholder Name', 'Capital Stock', 'Address'],
+            'opc2': ['Company Name', 'Authorized Capital', 'Subscribed Capital', 'Treasurer Name'],
+            'opc3': ['Company Name', 'Capital Amount', 'DST Rate', 'Total DST'],
+            'opc4': ['Company Name', 'Treasurer Name', 'Bond Amount', 'Bond Company'],
+            'opc5': ['Company Name', 'Signatory Name', 'Date', 'Notary Public'],
+            'ipo1': ['Mark Name', 'Class', 'Applicant Name', 'Address'],
+            'ipo2': ['Mark Name', 'Assignor Name', 'Assignee Name', 'Date'],
+            'lgu1': ['Business Name', 'Address', 'Owner Name', 'Permit Type'],
+            'lgu2': ['Business Name', 'Address', 'Owner Name', 'Barangay'],
+            'lgu3': ['Business Name', 'Address', 'Owner Name', 'Health Office'],
+            'lgu4': ['Business Name', 'Address', 'Owner Name', 'Zoning Office'],
+            'ins1': ['Company Name', 'Coverage Amount', 'Policy No.', 'Insurer'],
+            'ins2': ['Company Name', 'Coverage Amount', 'Policy No.', 'Insurer'],
+            'ins3': ['Company Name', 'Revenue Amount', 'Royalty Rate', 'Foundation Name'],
+            'fg1': ['Target Company', 'Buyer Name', 'Price', 'Date'],
+            'fg2': ['Foundation Name', 'Purpose', 'Board Members', 'Date'],
+            'fg3': ['Foundation Name', 'Grantee Name', 'Amount', 'Date']
+        };
+
+        function openModal(taskId) {
+            currentModalTask = taskId;
+            const fields = proformaFields[taskId] || ['Task Name', 'Details'];
+            const title = tasks[taskId] ? tasks[taskId].text : 'Generic Form';
+            document.getElementById('modalTitle').innerText = `Generate: ${title}`;
+            
+            let html = '';
+            fields.forEach(field => {
+                html += `<div class="modal-field"><label>${field}</label><input type="text" id="field_${field.replace(/\s+/g, '_')}" placeholder="Enter ${field}"></div>`;
+            });
+            document.getElementById('modalFields').innerHTML = html;
+            document.getElementById('proformaOutput').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            currentModalTask = null;
+        }
+
+        function generateProforma() {
+            if(!currentModalTask) return;
+            const fields = proformaFields[currentModalTask] || ['Task Name', 'Details'];
+            let output = `========================================\n`;
+            output += ` ${tasks[currentModalTask].text.toUpperCase()}\n`;
+            output += `========================================\n\n`;
+            
+            fields.forEach(field => {
+                const val = document.getElementById(`field_${field.replace(/\s+/g, '_')}`).value || '___________';
+                output += `${field}: ${val}\n`;
+            });
+            
+            output += `\n----------------------------------------\n`;
+            output += `Generated on: ${new Date().toLocaleDateString()}\n`;
+            output += `Pascalogix Structura | V0.3.2C\n`;
+            output += `----------------------------------------\n`;
+
+            const outputDiv = document.getElementById('proformaOutput');
+            outputDiv.innerText = output;
+            outputDiv.style.display = 'block';
+        }
+
+        initPlanner();
+    </script>
+</body>
+</html>
