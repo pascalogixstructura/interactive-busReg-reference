@@ -1,408 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pascalogix Structura | Atomic TODO Notebook + Proforma Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #ffffff; color: #111111; font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-        .red-accent { color: #d32f2f; }
-        .bg-planner { background-color: #f9fafb; }
-
-        .task-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 2px; padding: 0.5rem; cursor: pointer; transition: all 0.2s ease; margin-bottom: 0.25rem; font-size: 0.8rem; }
-        .task-card:hover { border-color: #111111; background: #f9fafb; }
-        .task-card.selected { border: 2px solid #d32f2f; background: #fff5f5; }
-
-        .planner-slot { background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 2px; min-height: 60px; margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0.5rem; color: #9ca3af; font-size: 0.75rem; transition: all 0.2s ease; cursor: pointer; position: relative; }
-        .planner-slot:hover { border-color: #d32f2f; background: #fff5f5; }
-        .planner-slot.filled { border: 1px solid #111111; background: #ffffff; color: #111111; justify-content: flex-start; text-align: left; cursor: default; }
-
-        .notebook-entry { width: 100%; border-left: 3px solid #d32f2f; padding-left: 12px; }
-        .task-title { font-weight: bold; margin-bottom: 0.25rem; }
-        .atomic-section { background: #f1f5f9; padding: 0.25rem; border-radius: 2px; margin-top: 0.25rem; font-size: 0.7rem; }
-        .atomic-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; color: #111111; font-weight: bold; margin-bottom: 0.1rem; }
-        .granule-link { color: #d32f2f; text-decoration: underline; word-break: break-all; cursor: pointer; }
-        .generate-btn { background: #111111; color: #ffffff; border: none; padding: 0.4rem 0.8rem; border-radius: 2px; font-size: 0.75rem; margin-top: 0.5rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; }
-        .generate-btn:hover { background: #d32f2f; }
-
-        .remove-btn { position: absolute; top: 4px; right: 4px; color: #d32f2f; cursor: pointer; font-size: 1.5rem; line-height: 1; padding: 0.4rem; background: #fff; border: 1px solid #d32f2f; border-radius: 2px; z-index: 5; }
-        .remove-btn:hover { background: #d32f2f; color: #fff; }
-
-        .total-bar { background: #111111; color: #ffffff; padding: 0.75rem; text-align: center; font-size: 1rem; font-weight: bold; margin-top: 0.5rem; display: flex; justify-content: space-around; }
-        .total-bar .red-accent { color: #ffffff; }
-
-        .col-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #111111; border-bottom: 2px solid #111111; padding-bottom: 0.25rem; margin-bottom: 0.5rem; font-weight: bold; text-align: center; }
-
-        .date-input { font-size: 0.7rem; border: 1px solid #ccc; padding: 2px 4px; border-radius: 2px; margin-top: 4px; width: 45%; float: right; margin-left: 10px; }
-
-        /* Modal Styles */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; display: none; align-items: center; justify-content: center; }
-        .modal-content { background: #ffffff; border: 1px solid #111; max-width: 600px; width: 90%; padding: 2rem; max-height: 90vh; overflow-y: auto; border-radius: 2px; }
-        .modal-field { margin-bottom: 1rem; }
-        .modal-field label { display: block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
-        .modal-field input, .modal-field textarea, .modal-field select { width: 100%; border: 1px solid #ccc; padding: 0.5rem; font-size: 0.9rem; box-sizing: border-box; }
-        .proforma-output { white-space: pre-wrap; background: #f1f5f9; border: 1px solid #e5e7eb; padding: 1rem; font-family: monospace; font-size: 0.85rem; margin-top: 1rem; }
-        .btn-close { background: #111; color: #fff; border: none; padding: 0.5rem 1rem; cursor: pointer; margin-top: 1rem; text-transform: uppercase; font-size: 0.8rem; }
-        .btn-close:hover { background: #d32f2f; }
-
-        .static-plan-header { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #111111; padding-bottom: 1rem; margin-bottom: 2rem; }
-        .phase-block { border-left: 4px solid #d32f2f; padding-left: 1.5rem; margin-bottom: 2.5rem; }
-        .phase-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }
-        .phase-detail { background: #e2e8f0; border: 1px solid #e5e7eb; padding: 1rem; margin-top: 1rem; }
-
-        .task-scroll { max-height: 70vh; overflow-y: auto; padding-right: 0.5rem; }
-        .task-scroll::-webkit-scrollbar { width: 6px; }
-        .task-scroll::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
-
-        .planner-scroll { max-height: 70vh; overflow-y: auto; padding-right: 0.5rem; }
-        .planner-scroll::-webkit-scrollbar { width: 6px; }
-        .planner-scroll::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
-
-        @media (max-width: 1024px) {
-            .task-scroll, .planner-scroll { max-height: none; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pascalogix Structura | Draft 19 Lock Override Active PERT CPM - Early IPOPHL LGU - V0.3.2C + Proforma</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{--claude-gold:#B08968;--claude-light:#FDF6EF;--claude-mid:#F5EDE4;--claude-dark:#8B6F4E;--ink:#111;}
+  body{background:#F6F1E9;color:#111;font-family:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif;}
+  .red-accent{color:var(--claude-gold);} .claude-gold{color:var(--claude-gold);}
+  .bg-planner{background:#FAF7F2;}
+  .task-card{background:#fff;border:1px solid #e7e0d6;border-radius:2px;padding:.5rem;cursor:pointer;transition:all .2s ease;margin-bottom:.25rem;font-size:.8rem;}
+  .task-card:hover{border-color:var(--claude-dark);background:var(--claude-light);}
+  .task-card.selected{border:2px solid var(--claude-gold);background:var(--claude-light);}
+  .planner-slot{background:#fff;border:1px dashed #d6c9b8;border-radius:2px;min-height:60px;margin-bottom:.25rem;display:flex;align-items:center;justify-content:center;text-align:center;padding:.5rem;color:#9c8c7a;font-size:.75rem;transition:all .2s ease;cursor:pointer;position:relative;}
+  .planner-slot:hover{border-color:var(--claude-gold);background:var(--claude-light);}
+  .planner-slot.filled{border:1px solid var(--claude-dark);background:#fff;color:#111;justify-content:flex-start;text-align:left;cursor:default;}
+  .notebook-entry{width:100%;border-left:3px solid var(--claude-gold);padding-left:12px;}
+  .task-title{font-weight:bold;margin-bottom:.25rem;}
+  .atomic-section{background:var(--claude-mid);padding:.25rem;border-radius:2px;margin-top:.25rem;font-size:.7rem;}
+  .atomic-label{text-transform:uppercase;letter-spacing:.05em;font-size:.7rem;color:#111;font-weight:bold;margin-bottom:.1rem;}
+  .granule-link{color:var(--claude-dark);text-decoration:underline;word-break:break-all;cursor:pointer;}
+  .generate-btn{background:#1A1A1A;color:#fff;border:none;padding:.4rem .8rem;border-radius:2px;font-size:.7rem;margin-top:.5rem;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;width:100%;}
+  .generate-btn:hover{background:var(--claude-gold);}
+  .remove-btn{position:absolute;top:4px;right:4px;color:var(--claude-gold);cursor:pointer;font-size:1.5rem;line-height:1;padding:.4rem;background:#fff;border:1px solid var(--claude-gold);border-radius:2px;z-index:5;}
+  .remove-btn:hover{background:var(--claude-gold);color:#fff;}
+  .total-bar{background:#1A1A1A;color:#fff;padding:.75rem;text-align:center;font-size:.95rem;font-weight:bold;margin-top:.5rem;display:flex;justify-content:space-around;flex-wrap:wrap;gap:.5rem;}
+  .col-header{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#111;border-bottom:2px solid #111;padding-bottom:.25rem;margin-bottom:.5rem;font-weight:bold;text-align:center;}
+  .date-input{font-size:.7rem;border:1px solid #d6c9b8;padding:2px 4px;border-radius:2px;margin-top:4px;width:45%;float:right;margin-left:10px;}
+  .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:50;display:none;align-items:center;justify-content:center;}
+  .modal-content{background:#fff;border:1px solid #111;max-width:480px;width:90%;padding:1.5rem;max-height:90vh;overflow-y:auto;border-radius:2px;}
+  .modal-field{margin-bottom:1rem;} .modal-field label{display:block;font-size:.7rem;font-weight:bold;text-transform:uppercase;margin-bottom:.25rem;}
+  .modal-field input,.modal-field textarea,.modal-field select{width:100%;border:1px solid #d6c9b8;padding:.5rem;font-size:.9rem;box-sizing:border-box;}
+  .proforma-output{white-space:pre-wrap;background:var(--claude-mid);border:1px solid #e7e0d6;padding:1rem;font-family:monospace;font-size:.85rem;margin-top:1rem;}
+  .btn-close{background:#1A1A1A;color:#fff;border:none;padding:.5rem 1rem;cursor:pointer;margin-top:1rem;text-transform:uppercase;font-size:.8rem;width:100%;}
+  .btn-close:hover{background:var(--claude-gold);}
+  .static-plan-header{font-size:1.1rem;font-weight:800;text-transform:uppercase;border-bottom:2px solid #111;padding-bottom:.75rem;margin-bottom:1.5rem;}
+  .phase-block{border-left:4px solid var(--claude-gold);padding-left:1.25rem;margin-bottom:2rem;}
+  .phase-title{font-size:1rem;font-weight:bold;margin-bottom:.25rem;}
+  .phase-detail{background:var(--claude-mid);border:1px solid #e7e0d6;padding:.75rem;margin-top:.5rem;font-size:.8rem;}
+  .task-scroll{max-height:70vh;overflow-y:auto;padding-right:.5rem;} .task-scroll::-webkit-scrollbar{width:6px;} .task-scroll::-webkit-scrollbar-thumb{background:var(--claude-gold);border-radius:3px;}
+  .planner-scroll{max-height:70vh;overflow-y:auto;padding-right:.5rem;} .planner-scroll::-webkit-scrollbar{width:6px;} .planner-scroll::-webkit-scrollbar-thumb{background:var(--claude-gold);border-radius:3px;}
+  .logo-emblem{width:64px;height:64px;border-radius:50%;border:2px solid var(--claude-gold);box-shadow:0 0 0 1px #000,0 0 8px rgba(176,137,104,.3);object-fit:cover;background:white;}
+  @media(min-width:480px){.logo-emblem{width:96px;height:96px;}}
+  @media(max-width:1024px){.task-scroll,.planner-scroll{max-height:none;}}
+  .header-wrap,.main-wrap{padding-left:1rem;padding-right:1rem;max-width:480px;margin-left:auto;margin-right:auto;}
+  body{display:flex;flex-direction:column;align-items:center;}
+  header,main,footer,.static-wrap{width:100%;max-width:480px;}
+  .portrait-paper{width:100%;max-width:480px;min-height:100dvh;background:white;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 20px 60px rgba(0,0,0,.08);}
+  .critical-badge{background:var(--claude-gold);color:white;font-size:.6rem;padding:2px 6px;border-radius:2px;text-transform:uppercase;letter-spacing:.05em;}
+  .override-banner{background:#1A1A1A;color:#FDF6EF;padding:.5rem;text-align:center;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;}
+</style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen">
+<div class="portrait-paper flex flex-col min-h-screen">
 
-    <!-- HEADER -->
-    <header class="shrink-0 border-b border-black py-3 bg-white z-10">
-        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center gap-4">
-                <img src="https://image.qwenlm.ai/public_source/7cb2ab89-08ad-4ea5-94cc-f5f3a8b6f16d/1abe38d30-2b4c-4edc-9fc7-451a3c0fe87b.png" alt="Pascalogix Structura" class="w-12 h-12 md:w-24 md:h-24 rounded-full border border-gray-300">
-                <div>
-                    <h1 class="text-lg font-bold tracking-tight uppercase">Pascalogix Structura</h1>
-                    <p class="text-xs text-gray-500">V0.3.2C Atomic TODO Notebook + Proforma Generator</p>
-                </div>
-            </div>
-            <button onclick="resetPlanner()" class="border border-black px-3 py-1 text-sm uppercase hover:bg-black hover:text-white transition-colors">Reset Planner</button>
-        </div>
-    </header>
+<div class="override-banner">DRAFT 19 • OVERRIDE LOCKED AS ACTIVE PERT CPM v1.2 • EARLY IPOPHL & LGU • S59 S60 S61 S62 S64 RA11232 RA8293 RA10173 • PORTRAIT CLAUDE GOLD #B08968</div>
 
-    <!-- MAIN -->
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- LEFT: Task Inventory -->
-            <section>
-                <h2 class="col-header">1. Atomic Task Inventory (Pick Up Data)</h2>
-                <div class="task-scroll">
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">DTI Registration</h3>
-                    <div class="task-card" id="task-dti1" onclick="pickTask('dti1')">DTI BNRS Filing | PHP 200-1,000 | Payee: DTI | PERT: 1-3 Days</div>
-                    <div class="task-card" id="task-dti2" onclick="pickTask('dti2')">DTI Closure (Notice of Dissolution) | PHP 500 | Payee: DTI | PERT: 1-3 Days</div>
-                    <div class="task-card" id="task-dti3" onclick="pickTask('dti3')">DTI Affidavit Notarization | PHP 200-500 | Payee: Notary</div>
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">BIR Registration</h3>
-                    <div class="task-card" id="task-bir1" onclick="pickTask('bir1')">BIR COR Form 2303 | PHP 0 (ARF Abolished) | Payee: BIR | PERT: 3-7 Days</div>
-                    <div class="task-card" id="task-bir2" onclick="pickTask('bir2')">BIR DST | PHP 30 | Payee: BIR</div>
-                    <div class="task-card" id="task-bir3" onclick="pickTask('bir3')">Books & ATP Printing | PHP 1,000-3,000 | Payee: Accredited Printer</div>
-                    <div class="task-card" id="task-bir4" onclick="pickTask('bir4')">BIR Tax Clearance (Form 1905) | PHP 100 | Payee: BIR RDO | PERT: 20-30 Days</div>
-                    <div class="task-card" id="task-bir5" onclick="pickTask('bir5')">BIR Open Cases Settlement | PHP 1,000-5,000 | Payee: BIR</div>
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Professional Renewal</h3>
-                    <div class="task-card" id="task-prc1" onclick="pickTask('prc1')">PRC LERIS Renewal | PHP 450-1,200 | Payee: PRC | PERT: 1-5 Days</div>
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">OPC Formation (RA 11232)</h3>
-                    <div class="task-card" id="task-opc1" onclick="pickTask('opc1')">SEC OPC Filing Fee | PHP 1,000-2,000 | Payee: SEC | PERT: 5-10 Days</div>
-                    <div class="task-card" id="task-opc2" onclick="pickTask('opc2')">SEC By-Laws & Stock Book | PHP 870 | Payee: SEC</div>
-                    <div class="task-card" id="task-opc3" onclick="pickTask('opc3')">OPC DST (0.75%) | PHP 188-1,875 | Payee: BIR</div>
-                    <div class="task-card" id="task-opc4" onclick="pickTask('opc4')">Surety Bond (if self-treasurer) | PHP 5,000-10,000 | Payee: Bond Company</div>
-                    <div class="task-card" id="task-opc5" onclick="pickTask('opc5')">OPC Notarization | PHP 600-1,500 | Payee: Notary</div>
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">IPOPHL & LGU (Early)</h3>
-                    <div class="task-card" id="task-ipo1" onclick="pickTask('ipo1')">IPOPHL Trademark Filing (REN/CORDS) | PHP 1,020 per class | Payee: IPOPHL | PERT: 8-12 mo</div>
-                    <div class="task-card" id="task-ipo2" onclick="pickTask('ipo2')">IPOPHL Assignment Notarization | PHP 300 | Payee: Notary</div>
-                    <div class="task-card" id="task-lgu1" onclick="pickTask('lgu1')">LGU Mayor's Permit | PHP 2,000-5,000 | Payee: LGU</div>
-                    <div class="task-card" id="task-lgu2" onclick="pickTask('lgu2')">Barangay Clearance | PHP 500-1,000 | Payee: Barangay | PERT: 1-3 Days</div>
-                    <div class="task-card" id="task-lgu3" onclick="pickTask('lgu3')">Sanitary Permit | PHP 500-1,500 | Payee: City Health</div>
-                    <div class="task-card" id="task-lgu4" onclick="pickTask('lgu4')">Zoning Clearance | PHP 1,000-2,000 | Payee: Zoning Office | PERT: 5-7 Days</div>
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Insurance & Royalty</h3>
-                    <div class="task-card" id="task-ins1" onclick="pickTask('ins1')">E&O Insurance (Team $1M) | PHP 45,000-140,000 | Payee: Insurer</div>
-                    <div class="task-card" id="task-ins2" onclick="pickTask('ins2')">E&O Insurance (Enterprise $5M+) | PHP 170,000-450,000 | Payee: Insurer</div>
-                    <div class="task-card" id="task-ins3" onclick="pickTask('ins3')">Royalty Mechanism Trial | PHP 3,000 | Payee: Foundation</div>
-                    <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">FellowGrid & Grants</h3>
-                    <div class="task-card" id="task-fg1" onclick="pickTask('fg1')">100% SPA Execution | PHP 15,000-30,000 | Payee: Legal Counsel</div>
-                    <div class="task-card" id="task-fg2" onclick="pickTask('fg2')">Non-Stock Foundation Incorporation | PHP 15,000-30,000 | Payee: SEC</div>
-                    <div class="task-card" id="task-fg3" onclick="pickTask('fg3')">Grant Disbursement Trial | PHP 5,000 | Payee: Foundation</div>
-                </div>
-            </section>
+<header class="shrink-0 border-b border-[#d6c9b8] py-3 bg-white z-10">
+<div class="header-wrap w-full flex justify-between items-center">
+<div class="flex items-center gap-3">
+<img src="assets/logo.png" alt="Pascalogix Structura - FellowGrid Emblem" class="logo-emblem" onerror="this.src='https://image.qwenlm.ai/public_source/7cb2ab89-08ad-4ea5-94cc-f5f3a8b6f16d/1f39343d9-f156-4cdc-ac6c-e88397276658.png'">
+<div>
+<h1 class="text-[13px] font-bold tracking-tight uppercase">Pascalogix Structura</h1>
+<p class="text-[10px] text-gray-500">V0.3.2C Atomic TODO + Proforma Generator</p>
+<p class="text-[0.6rem] text-[#8B6F4E] tracking-wider">FORTITUDO • ORDO • LEGATUM • Lean PHP127,530 USD2,256 Full PHP852k USD4,600 126Days 6Phases 21Days/Phase</p>
+</div>
+</div>
+<button onclick="resetPlanner()" class="border border-black px-2 py-1 text-[9px] uppercase hover:bg-black hover:text-white">Reset</button>
+</div>
+</header>
 
-            <!-- RIGHT: Planner -->
-            <section>
-                <h2 class="col-header">2. TODO Notebook (Click to Drop)</h2>
-                <div class="bg-planner p-4 border border-gray-200 rounded-sm">
-                    <div class="planner-scroll" id="planner-container"></div>
-                </div>
-                <div class="total-bar">
-                    <span id="min-display">PHP 0</span>
-                    <span class="text-gray-400 text-sm">-</span>
-                    <span id="max-display">PHP 0</span>
-                </div>
-            </section>
-        </div>
-    </main>
+<main class="flex-grow w-full main-wrap p-3">
+<div class="grid grid-cols-1 gap-5">
+<section>
+<h2 class="col-header">1. Atomic Task Inventory (Pick Up Data) — Override Sequence DTI → BIR COR & Books → Professional Adjacent → Liquidation → OPC RA11232 → Early IPOPHL & LGU</h2>
+<div class="task-scroll" id="task-pool">
+<h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Phase 0 • DTI Registration • PHP2,030 / USD36 • Full PHP70k • 21Days 0-21 • ManuTest PHP500 <span class="critical-badge">Critical</span></h3>
+<div class="task-card" id="task-dti1" onclick="pickTask('dti1')">DTI BNRS Filing | PHP 200-1,000 | Payee: DTI | PERT 1-3 Days</div>
+<div class="task-card" id="task-dti2" onclick="pickTask('dti2')">DTI Closure (Notice of Dissolution) | PHP 500 | Payee: DTI | PERT 1-3 Days</div>
+<div class="task-card" id="task-dti3" onclick="pickTask('dti3')">DTI Affidavit Notarization | PHP 200-500 | Payee: Notary</div>
 
-    <!-- STATIC 126-DAY PLAN -->
-    <section class="max-w-7xl w-full mx-auto p-6 border-t border-gray-300 bg-white">
-        <div class="static-plan-header">Full Static 126-Day Plan (Overview)</div>
-        <div class="phase-block">
-            <div class="phase-title">Phase 0: DTI National Setup (Days 0-21)</div>
-            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 2,030</span><span class="red-accent">Full: PHP 70,000</span></div>
-            <div class="phase-detail text-sm">Secure trade name "Pascalogix Structura" via DTI BNRS. ManuTest: PHP 500. Deliverable: DTI Certificate.</div>
-        </div>
-        <div class="phase-block">
-            <div class="phase-title">Phase 1: BIR COR & Professional Renewal (Days 21-42)</div>
-            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 1,480-4,230</span><span class="red-accent">Full: PHP 4,200-10,000</span></div>
-            <div class="phase-detail text-sm">BIR Form 2303, Books, ATP, and PRC LERIS Renewal. ManuTest: PHP 500 + 450. Note: ARF Abolished Jan 2024.</div>
-        </div>
-        <div class="phase-block">
-            <div class="phase-title">Phase 2: Liquidation + OPC Formation (Days 42-63)</div>
-            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 46,600</span><span class="red-accent">Full: PHP 255,600</span></div>
-            <div class="phase-detail text-sm">DTI Closure (PHP 500) + BIR Tax Clearance (PHP 100) via Form 1905, SEC OPC under RA 11232, Delaware LLC. ManuTest: PHP 500 + 1,000 + $1.</div>
-        </div>
-        <div class="phase-block">
-            <div class="phase-title">Phase 3: Early IPOPHL & LGU (Days 63-84)</div>
-            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 32,520-40,800</span><span class="red-accent">Full: PHP 165,800</span></div>
-            <div class="phase-detail text-sm">File REN + CORDS Trademarks (RA 8293) same day as SEC release. LGU Mayor's, Barangay, Sanitary, BFP, Zoning. ManuTest: PHP 1,520.</div>
-        </div>
-        <div class="phase-block">
-            <div class="phase-title">Phase 4: Insurance & Royalty (Days 84-105)</div>
-            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 30,000</span><span class="red-accent">Full: PHP 180,000</span></div>
-            <div class="phase-detail text-sm">$1M/$5M+ E&O insurance and 10% Royalty to Fellowship Foundation. ManuTest: PHP 3,000.</div>
-        </div>
-        <div class="phase-block">
-            <div class="phase-title">Phase 5: FellowGrid Transition & Grants (Days 105-126)</div>
-            <div class="flex justify-between text-sm text-gray-600"><span>Lean: PHP 27,500</span><span class="red-accent">Full: PHP 182,000</span></div>
-            <div class="phase-detail text-sm">100% SPA for FellowGrid, Non-stock Foundation incorporation, 10 practitioner grant cap. ManuTest: PHP 5,000.</div>
-        </div>
-        <div class="total-bar mt-8">
-            <span class="text-white">Lean Total: PHP 127,530 / USD 2,256</span>
-            <span class="text-gray-400">|</span>
-            <span class="text-white">Full Total: PHP 852,000 / USD 4,600</span>
-        </div>
-        <p class="text-center text-xs text-gray-500 mt-4">Governance: 70/5/10/15 Cap Table | S61 Firewall | Carved-Out Liability Cap PHP 500k / USD 8,900 | Bifurcated Arbitration: PDRCI Manila / SIAC Singapore | S64 IP Vault</p>
-    </section>
+<h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Phase 1 • BIR COR & Books + Professional Renewal Adjacent • Lean PHP1,480-4,230 • Full PHP4,200-10k • ManuTest 500+450 <span class="critical-badge">Critical</span></h3>
+<div class="task-card" id="task-bir1" onclick="pickTask('bir1')">BIR COR Form 2303 | PHP 0 ARF Abolished | Payee: BIR | PERT 3-7 Days</div>
+<div class="task-card" id="task-bir2" onclick="pickTask('bir2')">BIR DST | PHP 30 | Payee: BIR</div>
+<div class="task-card" id="task-bir3" onclick="pickTask('bir3')">Books & ATP Printing | PHP 1,000-3,000 | Payee: Accredited Printer</div>
+<div class="task-card" id="task-bir4" onclick="pickTask('bir4')">BIR Tax Clearance Form 1905 | PHP 100 | Payee: BIR RDO | PERT 20-30 Days</div>
+<div class="task-card" id="task-bir5" onclick="pickTask('bir5')">BIR Open Cases Settlement | PHP 1,000-5,000 | Payee: BIR</div>
+<div class="task-card" id="task-prc1" onclick="pickTask('prc1')">PRC LERIS Renewal | PHP 450-1,200 | Payee: PRC | PERT 1-5 Days</div>
 
-    <!-- MODAL FOR PROFORMA GENERATOR -->
-    <div id="modalOverlay" class="modal-overlay">
-        <div class="modal-content">
-            <h2 id="modalTitle" class="text-xl font-bold uppercase mb-4">Generate Proforma</h2>
-            <div id="modalFields"></div>
-            <button onclick="generateProforma()" class="generate-btn w-full mt-4">Generate Proforma</button>
-            <div id="proformaOutput" class="proforma-output" style="display:none;"></div>
-            <button onclick="closeModal()" class="btn-close w-full mt-4">Close</button>
-        </div>
-    </div>
+<h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Phase 2 • Liquidation Planning + OPC Formation RA11232 + Delaware LLC • Lean PHP46,600 • Full PHP255,600 • 21Days 42-63 • ManuTest 500+1,000+$1 <span class="critical-badge">Critical Path</span></h3>
+<div class="task-card" id="task-opc1" onclick="pickTask('opc1')">SEC OPC Filing Fee | PHP 1,000-2,000 | Payee: SEC | PERT 5-10 Days</div>
+<div class="task-card" id="task-opc2" onclick="pickTask('opc2')">SEC By-Laws & Stock Book | PHP 870 | Payee: SEC</div>
+<div class="task-card" id="task-opc3" onclick="pickTask('opc3')">OPC DST (0.75%) | PHP 188-1,875 | Payee: BIR</div>
+<div class="task-card" id="task-opc4" onclick="pickTask('opc4')">Surety Bond (if self-treasurer) | PHP 5,000-10,000 | Payee: Bond Company</div>
+<div class="task-card" id="task-opc5" onclick="pickTask('opc5')">OPC Notarization | PHP 600-1,500 | Payee: Notary</div>
+<div class="task-card" id="task-del1" onclick="pickTask('del1')">Delaware LLC Formation | PHP 22,500 USD400 Lean / PHP 130k USD700 Full | Payee: DE Div Corps</div>
 
-    <footer class="shrink-0 border-t border-gray-300 py-2 text-center bg-white">
-        <p class="text-xs uppercase tracking-widest text-gray-500">Fortitudo • Ordo • Legatum | SHA256: 6128B482</p>
-    </footer>
+<h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Phase 3 • Early IPOPHL & LGU Compliance • Lean PHP32,520-40,800 • Full PHP165,800 • 21Days 63-84 • ManuTest PHP1,520 <span class="critical-badge">Early Locked</span></h3>
+<div class="task-card" id="task-ipo1" onclick="pickTask('ipo1')">IPOPHL Trademark Filing REN/CORDS | PHP 1,020 per class | Payee: IPOPHL | PERT 8-12 mo • Early file upon SEC release</div>
+<div class="task-card" id="task-ipo2" onclick="pickTask('ipo2')">IPOPHL Assignment Notarization | PHP 300 | Payee: Notary</div>
+<div class="task-card" id="task-lgu1" onclick="pickTask('lgu1')">LGU Mayor's Permit | PHP 2,000-5,000 | Payee: LGU</div>
+<div class="task-card" id="task-lgu2" onclick="pickTask('lgu2')">Barangay Clearance | PHP 500-1,000 | PERT 1-3 Days</div>
+<div class="task-card" id="task-lgu3" onclick="pickTask('lgu3')">Sanitary Permit | PHP 500-1,500 | Payee: City Health</div>
+<div class="task-card" id="task-lgu4" onclick="pickTask('lgu4')">Zoning Clearance | PHP 1,000-2,000 | PERT 5-7 Days + BFP 3-5 Days</div>
 
-    <script>
-        let selectedTask = null;
-        let currentModalTask = null;
+<h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Phase 4 • Commercial Insurance + Royalty Flow 10% • Lean PHP30k USD530 • Full PHP180k USD980 • 21Days 84-105 • ManuTest PHP3,000</h3>
+<div class="task-card" id="task-ins1" onclick="pickTask('ins1')">E&O Insurance Team $1M | PHP 45,000-140,000 | Payee: Insurer</div>
+<div class="task-card" id="task-ins2" onclick="pickTask('ins2')">E&O Insurance Enterprise $5M+ | PHP 170,000-450,000</div>
+<div class="task-card" id="task-ins3" onclick="pickTask('ins3')">Royalty Mechanism Trial 10% to Foundation | PHP 3,000 | Payee: Foundation</div>
 
-        const tasks = {
-            'dti1': { text: 'DTI BNRS Filing', min: 200, max: 1000, atoms: "Trade Name Reservation, DTI Certificate", granules: "DTI BNRS Form, DTI Payment Slip" },
-            'dti2': { text: 'DTI Closure / Dissolution', min: 500, max: 500, atoms: "Notice of Dissolution, DTI Closure Certificate", granules: "Notarized Affidavit of Closure, DTI Certificate of Registration" },
-            'dti3': { text: 'DTI Affidavit Notarization', min: 200, max: 500, atoms: "Affidavit of Closure (Notarized)", granules: "Notary Public Acknowledgment" },
-            'bir1': { text: 'BIR COR Form 2303', min: 0, max: 0, atoms: "BIR Certificate of Registration", granules: "BIR Form 2303, Valid ID, DTI Certificate" },
-            'bir2': { text: 'BIR DST', min: 30, max: 30, atoms: "Documentary Stamp Tax", granules: "BIR Form 0605, DST payment" },
-            'bir3': { text: 'Books & ATP Printing', min: 1000, max: 3000, atoms: "Manual/Loose-Leaf Books, Authority to Print", granules: "BIR ATP application, Books, Receipts" },
-            'bir4': { text: 'BIR Tax Clearance (Form 1905)', min: 100, max: 100, atoms: "Tax Clearance / No Outstanding Liabilities, BIR Closure", granules: "BIR Form 1905, Final Inventory, Affidavit of Closure, Original ORs/Books" },
-            'bir5': { text: 'BIR Open Cases Settlement', min: 1000, max: 5000, atoms: "Settlement of Open Assessments", granules: "BIR Form 0605, Audit Settlement Documentation" },
-            'prc1': { text: 'PRC LERIS Renewal', min: 450, max: 1200, atoms: "PRC License Renewal", granules: "PRC LERIS online form, CPD Units Certificate, Valid ID" },
-            'opc1': { text: 'SEC OPC Filing Fee', min: 1000, max: 2000, atoms: "SEC Certificate of Incorporation", granules: "Articles of Incorporation for OPC, Nominee & Alternate Consent" },
-            'opc2': { text: 'SEC By-Laws & Stock Book', min: 870, max: 870, atoms: "By-Laws, Stock Book", granules: "By-Laws Form, Stock Book Form" },
-            'opc3': { text: 'OPC DST (0.75%)', min: 188, max: 1875, atoms: "Documentary Stamp Tax on Capital", granules: "BIR Payment Form" },
-            'opc4': { text: 'Surety Bond (if self-treasurer)', min: 5000, max: 10000, atoms: "Surety Bond (Treasurer)", granules: "Bond Company Application, PRC Res 2200 exemption" },
-            'opc5': { text: 'OPC Notarization', min: 600, max: 1500, atoms: "Notarized Articles / Consents", granules: "Notary Public Acknowledgment" },
-            'ipo1': { text: 'IPOPHL Trademark (REN/CORDS)', min: 1020, max: 1020, atoms: "REN / CORDS Trademark Filing", granules: "IPOPHL eTM Form, Payment, Mark Specimen" },
-            'ipo2': { text: 'IPOPHL Assignment Notarization', min: 300, max: 300, atoms: "IPOPHL Assignment Notarization", granules: "Notarized Assignment Form" },
-            'lgu1': { text: "LGU Mayor's Permit", min: 2000, max: 5000, atoms: "Mayor's Permit / Business Permit", granules: "LGU Permit Application, BIR COR, DTI Cert" },
-            'lgu2': { text: 'Barangay Clearance', min: 500, max: 1000, atoms: "Barangay Clearance", granules: "Barangay Application, Valid ID" },
-            'lgu3': { text: 'Sanitary Permit', min: 500, max: 1500, atoms: "Sanitary Permit", granules: "City Health Office Application, Inspection" },
-            'lgu4': { text: 'Zoning Clearance', min: 1000, max: 2000, atoms: "Zoning Clearance", granules: "LGU Zoning Office Application, Lease Contract" },
-            'ins1': { text: 'E&O Insurance (Team $1M)', min: 45000, max: 140000, atoms: "$1M Errors & Omissions Coverage", granules: "Insurance Policy, Proof of Coverage" },
-            'ins2': { text: 'E&O Insurance (Enterprise $5M+)', min: 170000, max: 450000, atoms: "$5M+ Errors & Omissions Coverage", granules: "Insurance Policy, Proof of Coverage" },
-            'ins3': { text: 'Royalty Mechanism Trial', min: 3000, max: 3000, atoms: "10% Net Revenue Royalty Mechanism", granules: "Foundation Escrow Test, Royalty Agreement" },
-            'fg1': { text: '100% SPA Execution', min: 15000, max: 30000, atoms: "100% Share Purchase Agreement, Subsidiary Transition", granules: "SPA Contract, Stock Certificates" },
-            'fg2': { text: 'Non-Stock Foundation Inc.', min: 15000, max: 30000, atoms: "Non-Stock Foundation Incorporation", granules: "SEC Articles of Incorporation" },
-            'fg3': { text: 'Grant Disbursement Trial', min: 5000, max: 5000, atoms: "Non-Dilutive Grant Disbursement Trial", granules: "Grant Disbursement Ledger, Bank Proof" }
-        };
+<h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Phase 5 • FellowGrid 100% Owned + Fellowship Foundation Grants • Lean PHP27,500 USD530 • Full PHP182k USD970 • 21Days 105-126 • ManuTest PHP5,000</h3>
+<div class="task-card" id="task-fg1" onclick="pickTask('fg1')">100% SPA Execution | PHP 15,000-30,000 | Payee: Legal Counsel</div>
+<div class="task-card" id="task-fg2" onclick="pickTask('fg2')">Non-Stock Foundation Incorporation | PHP 15,000-30,000 | Payee: SEC</div>
+<div class="task-card" id="task-fg3" onclick="pickTask('fg3')">Grant Disbursement Trial | PHP 5,000 | Payee: Foundation</div>
+</div>
+</section>
 
-        let droppedTasks = [];
-        const totalSlots = 26;
+<section>
+<h2 class="col-header">2. TODO Notebook (Click to Drop) — 26 Slots — Critical Path 126 Days <span class="critical-badge">Override Active</span></h2>
+<div class="bg-planner p-3 border border-gray-200 rounded-sm">
+<div class="planner-scroll" id="planner-container"></div>
+</div>
+<div class="total-bar">
+<span id="min-display">PHP 0</span>
+<span class="text-gray-400 text-[9px]">| Lean PHP127,530 USD2,256 Full PHP852,000 USD4,600</span>
+<span id="max-display">PHP 0</span>
+</div>
+</section>
+</div>
+</main>
 
-        function getDefaultDate() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
-        }
+<section class="static-wrap w-full mx-auto p-4 border-t border-gray-300 bg-white">
+<div class="static-plan-header">Draft 19 Override Locked Active PERT CPM — Early IPOPHL & LGU — 6 Phases 21Days/Phase 126Days — Portrait Claude Gold #B08968</div>
 
-        function initPlanner() {
-            const container = document.getElementById('planner-container');
-            container.innerHTML = '';
-            for(let i = 0; i < totalSlots; i++) {
-                const slot = document.createElement('div');
-                slot.className = 'planner-slot';
-                slot.id = `slot-${i}`;
-                slot.onclick = () => dropToSlot(i);
-                slot.innerHTML = `<span>Priority ${i+1} - Empty Notebook Slot</span>`;
-                container.appendChild(slot);
-            }
-        }
+<div class="phase-block">
+<div class="phase-title">Phase 0: DTI National Setup (Days 0-21) <span class="critical-badge">Critical</span></div>
+<div class="flex justify-between text-xs text-gray-600"><span>Lean: PHP 2,030 USD 36</span><span class="claude-gold">Full: PHP 70,000 USD 380</span></div>
+<div class="phase-detail">Secure trade name "Pascalogix Structura" via DTI BNRS. ManuTest PHP 500. Deliverable: DTI Certificate. Why Override: DTI sole prop precursor blocks clean IP chain per S64 IP Vault. Dual liability violates S61 Firewall.</div>
+</div>
 
-        function pickTask(id) {
-            if(selectedTask) document.getElementById(`task-${selectedTask}`).classList.remove('selected');
-            selectedTask = id;
-            document.getElementById(`task-${id}`).classList.add('selected');
-        }
+<div class="phase-block">
+<div class="phase-title">Phase 1: BIR COR & Professional Renewal (Days 21-42) <span class="critical-badge">Critical</span></div>
+<div class="flex justify-between text-xs text-gray-600"><span>Lean: PHP 1,480-4,230 = BIR 1,030-3,030 + PRC 450-1,200</span><span class="claude-gold">Full: PHP 4,200-10,000</span></div>
+<div class="phase-detail">BIR Form 2303 PHP 0 ARF Abolished Jan 2024 + DST PHP30 + Books ATP PHP1k-3k + PRC LERIS PHP450-1,200. PERT BIR 3-7d + PRC 1-5d Annual. ManuTest PHP500 BIR + PHP450 Professional.</div>
+</div>
 
-        function dropToSlot(slotId) {
-            if(!selectedTask) { alert("Pick a task from the left first!"); return; }
-            const slot = document.getElementById(`slot-${slotId}`);
-            if(slot.classList.contains('filled')) { alert("This notebook slot is already filled."); return; }
-            const alreadyPlanned = droppedTasks.find(task => task.id === selectedTask);
-            if(alreadyPlanned) { alert("This task is already in the planner. Remove it first."); return; }
+<div class="phase-block">
+<div class="phase-title">Phase 2: Liquidation Planning + OPC Formation RA11232 + Delaware LLC (Days 42-63) <span class="critical-badge">Critical Path</span></div>
+<div class="flex justify-between text-xs text-gray-600"><span>Lean: PHP 46,600 = Liquidation 1,600-5,600 + OPC 22,500 + Delaware 22,500</span><span class="claude-gold">Full: PHP 255,600</span></div>
+<div class="phase-detail">Liquidation: DTI Closure PHP500 + BIR Tax Clearance Form1905 PHP100 + settlement PHP1k-5k. OPC PH Lean PHP22,500 Full PHP120k Payee SEC. Delaware LLC Lean PHP22,500 Full PHP130k Payee DE Div Corps. PERT Liquidation 20-30d + OPC 5-10d. ManuTest PHP500 + PHP1,000 + $1 Stripe. Driver RA11232 OPC single stockholder; RA8293 REN+CORDS e-filing upon SEC incorporation.</div>
+</div>
 
-            const data = tasks[selectedTask];
-            const defaultDate = getDefaultDate();
-            droppedTasks.push({ id: selectedTask, data: data, slot: slotId });
-            updateSlot(slotId, selectedTask, data, defaultDate);
-            document.getElementById(`task-${selectedTask}`).classList.remove('selected');
-            selectedTask = null;
-            updateTotal();
-        }
+<div class="phase-block">
+<div class="phase-title">Phase 3: Early IPOPHL & LGU (Days 63-84) <span class="critical-badge">Early Locked per Directive</span></div>
+<div class="flex justify-between text-xs text-gray-600"><span>Lean: PHP 32,520-40,800 = BIR/LGU/IPOPHL 25k + IPOPHL 3,520-5,300 + LGU 4k-10.5k</span><span class="claude-gold">Full: PHP 165,800</span></div>
+<div class="phase-detail">Early IPOPHL & LGU per directive "early the ipophl and lgu": IPOPHL Trademark REN/CORDS PHP1,020 per class PERT 8-12 months Validity 10 years renewable. File same day as SEC Certificate release per RA8293 locks date per S64 IP Vault. LGU: Mayor's PHP2k-5k + Barangay PHP500-1k PERT 1-3d + Sanitary PHP500-1.5k + BFP Fire Safety 3-5d + Zoning PHP1k-2k PERT 5-7d. File within 3 days of COR. Prevents operational delay, required for BIR COR activation and invoicing per S60 Team $1,997/yr $1M E&O Enterprise $4,997/yr $5M+. ManuTest PHP1,520 = BIR eDST + IPOPHL eTM PHP1,020 + LGU portal PHP500.</div>
+</div>
 
-        function updateSlot(slotId, taskId, data, dateVal) {
-            const slot = document.getElementById(`slot-${slotId}`);
-            slot.classList.add('filled');
-            slot.innerHTML = `
-                <div class="notebook-entry">
-                    <div class="remove-btn" onclick="event.stopPropagation(); removeTask(${slotId})">×</div>
-                    <div class="task-title">Priority ${parseInt(slotId) + 1}: ${data.text}</div>
-                    <div class="flex justify-between text-xs font-bold mb-1">
-                        <span class="red-accent">Amount: PHP ${data.min.toLocaleString()} - PHP ${data.max.toLocaleString()}</span>
-                    </div>
-                    <input type="date" class="date-input" value="${dateVal}" onclick="event.stopPropagation();">
-                    <div class="atomic-section">
-                        <div class="atomic-label">Atoms (Main Deliverables)</div>
-                        <div class="text-gray-700">${data.atoms}</div>
-                    </div>
-                    <div class="atomic-section mt-2">
-                        <div class="atomic-label">Granules (Exact Paper Submission Requirements)</div>
-                        <div class="text-gray-700">${data.granules}</div>
-                    </div>
-                    <button class="generate-btn" onclick="event.stopPropagation(); openModal('${taskId}')">Generate Proforma</button>
-                </div>
-            `;
-        }
+<div class="phase-block">
+<div class="phase-title">Phase 4: Commercial Insurance + Royalty Flow 10% (Days 84-105)</div>
+<div class="flex justify-between text-xs text-gray-600"><span>Lean: PHP 30,000 USD 530</span><span class="claude-gold">Full: PHP 180,000 USD 980</span></div>
+<div class="phase-detail">Insurance Policy $1M/$5M+ E&O + Royalty Mechanism Setup 10% to Foundation. Payee Licensed Insurer / Foundation Escrow. PERT 21 Days. ManuTest PHP3,000 Royalty flow 10% test PSGS LLC → OPC → Foundation.</div>
+</div>
 
-        function removeTask(slotId) {
-            const slot = document.getElementById(`slot-${slotId}`);
-            slot.classList.remove('filled');
-            slot.innerHTML = `<span>Priority ${parseInt(slotId) + 1} - Empty Notebook Slot</span>`;
-            droppedTasks = droppedTasks.filter(task => task.slot !== slotId);
-            updateTotal();
-        }
+<div class="phase-block">
+<div class="phase-title">Phase 5: FellowGrid 100% Owned + Fellowship Foundation Grants (Days 105-126)</div>
+<div class="flex justify-between text-xs text-gray-600"><span>Lean: PHP 27,500 USD 530</span><span class="claude-gold">Full: PHP 182,000 USD 970</span></div>
+<div class="phase-detail">FellowGrid Subsidiary + Grant Disbursement Framework. Payee FellowGrid Inc. / Fellowship Foundation. PERT 21 Days. ManuTest PHP5,000 Grant disbursement Foundation → FellowGrid. Governance 70/5/10/15 preserved.</div>
+</div>
 
-        function updateTotal() {
-            let totalMin = 0, totalMax = 0;
-            droppedTasks.forEach(task => {
-                totalMin += task.data.min;
-                totalMax += task.data.max;
-            });
-            document.getElementById('min-display').innerText = `PHP ${totalMin.toLocaleString()}`;
-            document.getElementById('max-display').innerText = `PHP ${totalMax.toLocaleString()}`;
-        }
+<div class="total-bar mt-6 flex-col">
+<span>Northstar Lean Outlay: PHP 127,530 / USD 2,256 • Full Outlay: PHP 852,000 / USD 4,600 • Critical Path: 126 Days 6 Phases 21 Days/Phase</span>
+<span class="text-[9px] text-gray-300">With Liquidation: Lean PHP129,130 • Full PHP857,600 • Close to northstar lean • Royalty 10% to Fellowship Foundation • S61 Firewall PHP500k/USD8,900 S64 IP Vault Bifurcated PDRCI Manila/SIAC Singapore</span>
+</div>
+<p class="text-center text-[9px] text-gray-500 mt-4">Governance: 70/5/10/15 Cap Table Founder 70% Non-Dilution Floor Advisor 5% ESOP/Talent 10% Foundation/Grants 15% | S61 Firewall Segregated Liability | Carved-Out Liability Cap PHP500k USD8,900 | Bifurcated Arbitration PDRCI Manila SIAC Singapore | S64 IP Vault | S60 Pricing Standard $97 Team $1,997/yr $1M E&O Enterprise $4,997/yr $5M+ E&O</p>
+</section>
 
-        function resetPlanner() {
-            droppedTasks = [];
-            for(let i = 0; i < totalSlots; i++) {
-                const slot = document.getElementById(`slot-${i}`);
-                slot.classList.remove('filled');
-                slot.innerHTML = `<span>Priority ${i+1} - Empty Notebook Slot</span>`;
-            }
-            updateTotal();
-        }
+<div id="modalOverlay" class="modal-overlay">
+<div class="modal-content">
+<h2 id="modalTitle" class="text-xl font-bold uppercase mb-4">Generate Proforma</h2>
+<div id="modalFields"></div>
+<button onclick="generateProforma()" class="generate-btn w-full mt-4">Generate Proforma</button>
+<div id="proformaOutput" class="proforma-output" style="display:none;"></div>
+<button onclick="closeModal()" class="btn-close w-full mt-4">Close</button>
+</div>
+</div>
 
-        // PROFORMA GENERATOR LOGIC
-        const proformaFields = {
-            'dti1': ['Business Name', 'Owner Name', 'Address', 'Territorial Scope'],
-            'dti2': ['Business Name', 'Certificate No.', 'Owner Name', 'Reason for Closure'],
-            'dti3': ['Business Name', 'Owner Name', 'Date'],
-            'bir1': ['TIN', 'Business Name', 'RDO Code', 'Address'],
-            'bir2': ['TIN', 'Business Name', 'Document Type', 'Amount'],
-            'bir3': ['TIN', 'Business Name', 'Book Type', 'Printer Name'],
-            'bir4': ['TIN', 'Business Name', 'RDO Code', 'Reason for Closure'],
-            'bir5': ['TIN', 'Business Name', 'Assessment No.', 'Amount Due'],
-            'prc1': ['Full Name', 'License No.', 'Profession', 'Renewal Date'],
-            'opc1': ['Company Name', 'Stockholder Name', 'Capital Stock', 'Address'],
-            'opc2': ['Company Name', 'Authorized Capital', 'Subscribed Capital', 'Treasurer Name'],
-            'opc3': ['Company Name', 'Capital Amount', 'DST Rate', 'Total DST'],
-            'opc4': ['Company Name', 'Treasurer Name', 'Bond Amount', 'Bond Company'],
-            'opc5': ['Company Name', 'Signatory Name', 'Date', 'Notary Public'],
-            'ipo1': ['Mark Name', 'Class', 'Applicant Name', 'Address'],
-            'ipo2': ['Mark Name', 'Assignor Name', 'Assignee Name', 'Date'],
-            'lgu1': ['Business Name', 'Address', 'Owner Name', 'Permit Type'],
-            'lgu2': ['Business Name', 'Address', 'Owner Name', 'Barangay'],
-            'lgu3': ['Business Name', 'Address', 'Owner Name', 'Health Office'],
-            'lgu4': ['Business Name', 'Address', 'Owner Name', 'Zoning Office'],
-            'ins1': ['Company Name', 'Coverage Amount', 'Policy No.', 'Insurer'],
-            'ins2': ['Company Name', 'Coverage Amount', 'Policy No.', 'Insurer'],
-            'ins3': ['Company Name', 'Revenue Amount', 'Royalty Rate', 'Foundation Name'],
-            'fg1': ['Target Company', 'Buyer Name', 'Price', 'Date'],
-            'fg2': ['Foundation Name', 'Purpose', 'Board Members', 'Date'],
-            'fg3': ['Foundation Name', 'Grantee Name', 'Amount', 'Date']
-        };
+<footer class="shrink-0 border-t border-gray-300 py-2 text-center bg-white w-full max-w-[480px] mx-auto">
+<p class="text-[8px] uppercase tracking-widest text-gray-500">Fortitudo • Ordo • Legatum | SHA256: 6128B482 | Draft19 Override Locked Active PERT CPM Early IPOPHL LGU • Portrait 480px • Claude Gold #B08968 • Proforma Generator • Logo assets/logo.png</p>
+</footer>
+</div>
 
-        function openModal(taskId) {
-            currentModalTask = taskId;
-            const fields = proformaFields[taskId] || ['Task Name', 'Details'];
-            const title = tasks[taskId] ? tasks[taskId].text : 'Generic Form';
-            document.getElementById('modalTitle').innerText = `Generate: ${title}`;
-            
-            let html = '';
-            fields.forEach(field => {
-                html += `<div class="modal-field"><label>${field}</label><input type="text" id="field_${field.replace(/\s+/g, '_')}" placeholder="Enter ${field}"></div>`;
-            });
-            document.getElementById('modalFields').innerHTML = html;
-            document.getElementById('proformaOutput').style.display = 'none';
-            document.getElementById('modalOverlay').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('modalOverlay').style.display = 'none';
-            currentModalTask = null;
-        }
-
-        function generateProforma() {
-            if(!currentModalTask) return;
-            const fields = proformaFields[currentModalTask] || ['Task Name', 'Details'];
-            let output = `========================================\n`;
-            output += ` ${tasks[currentModalTask].text.toUpperCase()}\n`;
-            output += `========================================\n\n`;
-            
-            fields.forEach(field => {
-                const val = document.getElementById(`field_${field.replace(/\s+/g, '_')}`).value || '___________';
-                output += `${field}: ${val}\n`;
-            });
-            
-            output += `\n----------------------------------------\n`;
-            output += `Generated on: ${new Date().toLocaleDateString()}\n`;
-            output += `Pascalogix Structura | V0.3.2C\n`;
-            output += `----------------------------------------\n`;
-
-            const outputDiv = document.getElementById('proformaOutput');
-            outputDiv.innerText = output;
-            outputDiv.style.display = 'block';
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('modalOverlay').addEventListener('click', function(e) {
-            if(e.target === this) closeModal();
-        });
-
-        initPlanner();
-    </script>
+<script>
+let selectedTask=null; let currentModalTask=null;
+const tasks={
+'dti1':{text:'DTI BNRS Filing',min:200,max:1000,atoms:"Trade Name Reservation, DTI Certificate",granules:"<a class='granule-link' href='https://bnrs.dti.gov.ph/' target='_blank'>DTI BNRS Portal</a>"},
+'dti2':{text:'DTI Closure / Dissolution',min:500,max:500,atoms:"Notice of Dissolution, DTI Closure Certificate",granules:"<a class='granule-link' href='https://www.dti.gov.ph/' target='_blank'>DTI Official</a> & Affidavit of Closure"},
+'dti3':{text:'DTI Affidavit Notarization',min:200,max:500,atoms:"Affidavit of Closure (Notarized)",granules:"Notary Public Acknowledgment"},
+'bir1':{text:'BIR COR Form 2303',min:0,max:0,atoms:"BIR Certificate of Registration",granules:"<a class='granule-link' href='https://www.bir.gov.ph/index.php/bir-forms.html' target='_blank'>BIR Form 2303</a>"},
+'bir2':{text:'BIR DST',min:30,max:30,atoms:"Documentary Stamp Tax",granules:"<a class='granule-link' href='https://www.bir.gov.ph/index.php/bir-forms.html' target='_blank'>BIR Form 0605</a>"},
+'bir3':{text:'Books & ATP Printing',min:1000,max:3000,atoms:"Manual/Loose-Leaf Books, Authority to Print",granules:"<a class='granule-link' href='https://www.bir.gov.ph/index.php/bir-forms.html' target='_blank'>BIR Form 1900 & 1906</a>"},
+'bir4':{text:'BIR Tax Clearance Form 1905',min:100,max:100,atoms:"Tax Clearance / No Outstanding Liabilities, BIR Closure",granules:"<a class='granule-link' href='https://www.bir.gov.ph/index.php/bir-forms.html' target='_blank'>BIR Form 1905</a>"},
+'bir5':{text:'BIR Open Cases Settlement',min:1000,max:5000,atoms:"Settlement of Open Assessments",granules:"<a class='granule-link' href='https://www.bir.gov.ph/index.php/bir-forms.html' target='_blank'>BIR Form 0605</a>"},
+'prc1':{text:'PRC LERIS Renewal',min:450,max:1200,atoms:"PRC License Renewal",granules:"<a class='granule-link' href='https://www.prc.gov.ph/' target='_blank'>PRC LERIS</a>"},
+'opc1':{text:'SEC OPC Filing Fee',min:1000,max:2000,atoms:"SEC Certificate of Incorporation",granules:"<a class='granule-link' href='https://esparc.sec.gov.ph/' target='_blank'>SEC eSPARC</a>"},
+'opc2':{text:'SEC By-Laws & Stock Book',min:870,max:870,atoms:"By-Laws, Stock Book",granules:"SEC Official Site"},
+'opc3':{text:'OPC DST (0.75%)',min:188,max:1875,atoms:"Documentary Stamp Tax on Capital",granules:"BIR Payment Form"},
+'opc4':{text:'Surety Bond (if self-treasurer)',min:5000,max:10000,atoms:"Surety Bond (Treasurer)",granules:"Bond Company Application"},
+'opc5':{text:'OPC Notarization',min:600,max:1500,atoms:"Notarized Articles / Consents",granules:"SEC Sample AOI"},
+'del1':{text:'Delaware LLC Formation',min:22500,max:130000,atoms:"DE Certificate of Formation",granules:"DE Div of Corps"},
+'ipo1':{text:'IPOPHL Trademark REN/CORDS',min:1020,max:1020,atoms:"REN / CORDS Trademark Filing Early",granules:"<a class='granule-link' href='https://www.ipophil.gov.ph/how-to-apply-for-trademark-registration/' target='_blank'>IPOPHL eTMFile</a> - Early per directive"},
+'ipo2':{text:'IPOPHL Assignment Notarization',min:300,max:300,atoms:"IPOPHL Assignment Notarization",granules:"IPOPHL Official Site"},
+'lgu1':{text:"LGU Mayor's Permit",min:2000,max:5000,atoms:"Mayor's Permit / Business Permit",granules:"<a class='granule-link' href='https://daraga.gov.ph/new_renewal_BPLO.html' target='_blank'>BPLO Application</a>"},
+'lgu2':{text:'Barangay Clearance',min:500,max:1000,atoms:"Barangay Clearance",granules:"Barangay Application"},
+'lgu3':{text:'Sanitary Permit',min:500,max:1500,atoms:"Sanitary Permit",granules:"City Health Office"},
+'lgu4':{text:'Zoning Clearance + BFP',min:1000,max:2000,atoms:"Zoning Clearance + Fire Safety BFP",granules:"LGU Zoning Office + BFP"},
+'ins1':{text:'E&O Insurance Team $1M',min:45000,max:140000,atoms:"$1M Errors & Omissions Coverage",granules:"Insurance Policy"},
+'ins2':{text:'E&O Insurance Enterprise $5M+',min:170000,max:450000,atoms:"$5M+ Errors & Omissions Coverage",granules:"Insurance Policy"},
+'ins3':{text:'Royalty Mechanism Trial 10% Foundation',min:3000,max:3000,atoms:"10% Net Revenue Royalty Mechanism",granules:"Foundation Escrow Test"},
+'fg1':{text:'100% SPA Execution',min:15000,max:30000,atoms:"100% Share Purchase Agreement, Subsidiary Transition",granules:"SPA Contract"},
+'fg2':{text:'Non-Stock Foundation Inc.',min:15000,max:30000,atoms:"Non-Stock Foundation Incorporation",granules:"SEC Articles"},
+'fg3':{text:'Grant Disbursement Trial',min:5000,max:5000,atoms:"Non-Dilutive Grant Disbursement Trial",granules:"Grant Disbursement Ledger"}
+};
+let droppedTasks=[]; const totalSlots=26;
+function getDefaultDate(){const t=new Date();return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;}
+function initPlanner(){const c=document.getElementById('planner-container');c.innerHTML='';for(let i=0;i<totalSlots;i++){const s=document.createElement('div');s.className='planner-slot';s.id=`slot-${i}`;s.onclick=()=>dropToSlot(i);s.innerHTML=`<span>Priority ${i+1} - Empty Notebook Slot</span>`;c.appendChild(s);}}
+function pickTask(id){if(selectedTask)document.getElementById(`task-${selectedTask}`)?.classList.remove('selected');selectedTask=id;document.getElementById(`task-${id}`)?.classList.add('selected');}
+function dropToSlot(slotId){if(!selectedTask){alert("Pick a task from the left first!");return;}const slot=document.getElementById(`slot-${slotId}`);if(slot.classList.contains('filled')){alert("This notebook slot is already filled.");return;}const alreadyPlanned=droppedTasks.find(t=>t.id===selectedTask);if(alreadyPlanned){alert("This task is already in the planner. Remove it first.");return;}const data=tasks[selectedTask];const defaultDate=getDefaultDate();droppedTasks.push({id:selectedTask,data:data,slot:slotId});updateSlot(slotId,selectedTask,data,defaultDate);document.getElementById(`task-${selectedTask}`)?.classList.remove('selected');selectedTask=null;updateTotal();}
+function updateSlot(slotId,taskId,data,dateVal){const slot=document.getElementById(`slot-${slotId}`);slot.classList.add('filled');slot.innerHTML=`<div class="notebook-entry"><div class="remove-btn" onclick="event.stopPropagation(); removeTask(${slotId})">×</div><div class="task-title">Priority ${parseInt(slotId)+1}: ${data.text}</div><div class="flex justify-between text-xs font-bold mb-1"><span class="red-accent">Amount: PHP ${data.min.toLocaleString()} - PHP ${data.max.toLocaleString()}</span></div><input type="date" class="date-input" value="${dateVal}" onclick="event.stopPropagation();"><div class="atomic-section"><div class="atomic-label">Atoms (Main Deliverables)</div><div class="text-gray-700">${data.atoms}</div></div><div class="atomic-section mt-2"><div class="atomic-label">Granules (Exact Paper Submission Requirements)</div><div class="text-gray-700">${data.granules}</div></div><button class="generate-btn" onclick="event.stopPropagation(); openModal('${taskId}')">Generate Proforma</button></div>`;}
+function removeTask(slotId){const slot=document.getElementById(`slot-${slotId}`);slot.classList.remove('filled');slot.innerHTML=`<span>Priority ${parseInt(slotId)+1} - Empty Notebook Slot</span>`;droppedTasks=droppedTasks.filter(t=>t.slot!==slotId);updateTotal();}
+function updateTotal(){let totalMin=0,totalMax=0;droppedTasks.forEach(t=>{totalMin+=t.data.min;totalMax+=t.data.max;});document.getElementById('min-display').innerText=`PHP ${totalMin.toLocaleString()}`;document.getElementById('max-display').innerText=`PHP ${totalMax.toLocaleString()}`;}
+function resetPlanner(){droppedTasks=[];for(let i=0;i<totalSlots;i++){const slot=document.getElementById(`slot-${i}`);slot.classList.remove('filled');slot.innerHTML=`<span>Priority ${i+1} - Empty Notebook Slot</span>`;}updateTotal();}
+const proformaFields={'dti1':['Business Name','Owner Name','Address','Territorial Scope'],'dti2':['Business Name','Certificate No.','Owner Name','Reason for Closure'],'dti3':['Business Name','Owner Name','Date'],'bir1':['TIN','Business Name','RDO Code','Address'],'bir2':['TIN','Business Name','Document Type','Amount'],'bir3':['TIN','Business Name','Book Type','Printer Name'],'bir4':['TIN','Business Name','RDO Code','Reason for Closure'],'bir5':['TIN','Business Name','Assessment No.','Amount Due'],'prc1':['Full Name','License No.','Profession','Renewal Date'],'opc1':['Company Name','Stockholder Name','Capital Stock','Address'],'opc2':['Company Name','Authorized Capital','Subscribed Capital','Treasurer Name'],'opc3':['Company Name','Capital Amount','DST Rate','Total DST'],'opc4':['Company Name','Treasurer Name','Bond Amount','Bond Company'],'opc5':['Company Name','Signatory Name','Date','Notary Public'],'del1':['Company Name','State','Registered Agent','Capital'],'ipo1':['Mark Name','Class','Applicant Name','Address'],'ipo2':['Mark Name','Assignor Name','Assignee Name','Date'],'lgu1':['Business Name','Address','Owner Name','Permit Type'],'lgu2':['Business Name','Address','Owner Name','Barangay'],'lgu3':['Business Name','Address','Owner Name','Health Office'],'lgu4':['Business Name','Address','Owner Name','Zoning Office'],'ins1':['Company Name','Coverage Amount','Policy No.','Insurer'],'ins2':['Company Name','Coverage Amount','Policy No.','Insurer'],'ins3':['Company Name','Revenue Amount','Royalty Rate','Foundation Name'],'fg1':['Target Company','Buyer Name','Price','Date'],'fg2':['Foundation Name','Purpose','Board Members','Date'],'fg3':['Foundation Name','Grantee Name','Amount','Date']};
+function openModal(taskId){currentModalTask=taskId;const fields=proformaFields[taskId]||['Task Name','Details'];const title=tasks[taskId]?tasks[taskId].text:'Generic Form';document.getElementById('modalTitle').innerText=`Generate: ${title}`;let html='';fields.forEach(field=>{html+=`<div class="modal-field"><label>${field}</label><input type="text" id="field_${field.replace(/\s+/g,'_')}" placeholder="Enter ${field}"></div>`;});document.getElementById('modalFields').innerHTML=html;document.getElementById('proformaOutput').style.display='none';document.getElementById('modalOverlay').style.display='flex';}
+function closeModal(){document.getElementById('modalOverlay').style.display='none';currentModalTask=null;}
+function generateProforma(){if(!currentModalTask)return;const fields=proformaFields[currentModalTask]||['Task Name','Details'];let output=`========================================\n ${tasks[currentModalTask].text.toUpperCase()}\n========================================\n\n`;fields.forEach(field=>{const val=document.getElementById(`field_${field.replace(/\s+/g,'_')}`).value||'___________';output+=`${field}: ${val}\n`;});output+=`\n----------------------------------------\nGenerated on: ${new Date().toLocaleDateString()}\nPascalogix Structura | V0.3.2C | Draft19 Override Active\nFortitudo • Ordo • Legatum\n----------------------------------------\n`;const outputDiv=document.getElementById('proformaOutput');outputDiv.innerText=output;outputDiv.style.display='block';}
+document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+initPlanner();
+</script>
+</div>
 </body>
 </html>
