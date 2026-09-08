@@ -3,65 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pascalogix Structura | Atomic TODO Notebook (Drag & Drop)</title>
+    <title>Pascalogix Structura | Atomic TODO Notebook + Proforma Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #ffffff; color: #111111; font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
         .red-accent { color: #d32f2f; }
         .bg-planner { background-color: #f9fafb; }
 
-        .task-card {
-            background: #ffffff; border: 1px solid #e5e7eb; border-radius: 2px; padding: 0.5rem;
-            cursor: grab; transition: all 0.2s ease; margin-bottom: 0.25rem; font-size: 0.8rem;
-        }
+        .task-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 2px; padding: 0.5rem; cursor: pointer; transition: all 0.2s ease; margin-bottom: 0.25rem; font-size: 0.8rem; }
         .task-card:hover { border-color: #111111; background: #f9fafb; }
-        .task-card.selected { border: 2px solid #d32f2f; background: #fff5f5; cursor: grabbing; }
+        .task-card.selected { border: 2px solid #d32f2f; background: #fff5f5; }
 
-        .planner-slot {
-            background: #ffffff; border: 2px dashed #cbd5e1; border-radius: 2px; min-height: 80px;
-            margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center;
-            text-align: center; padding: 0.5rem; color: #9ca3af; font-size: 0.75rem; transition: all 0.2s ease;
-            position: relative;
-        }
-        .planner-slot.drag-over { border-color: #d32f2f; background: #fff5f5; }
+        .planner-slot { background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 2px; min-height: 60px; margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0.5rem; color: #9ca3af; font-size: 0.75rem; transition: all 0.2s ease; cursor: pointer; position: relative; }
+        .planner-slot:hover { border-color: #d32f2f; background: #fff5f5; }
         .planner-slot.filled { border: 1px solid #111111; background: #ffffff; color: #111111; justify-content: flex-start; text-align: left; cursor: default; }
 
         .notebook-entry { width: 100%; border-left: 3px solid #d32f2f; padding-left: 12px; }
         .task-title { font-weight: bold; margin-bottom: 0.25rem; }
         .atomic-section { background: #f1f5f9; padding: 0.25rem; border-radius: 2px; margin-top: 0.25rem; font-size: 0.7rem; }
         .atomic-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; color: #111111; font-weight: bold; margin-bottom: 0.1rem; }
-
-        .remove-btn {
-            position: absolute; top: 4px; right: 4px; color: #d32f2f; cursor: pointer;
-            font-size: 1.5rem; line-height: 1; padding: 0.4rem; background: #fff; border: 1px solid #d32f2f; border-radius: 2px;
-        }
-        .remove-btn:hover { background: #d32f2f; color: #fff; }
-
-        .generate-btn {
-            background: #111111; color: #ffffff; border: none; padding: 0.4rem 0.8rem; border-radius: 2px;
-            font-size: 0.75rem; margin-top: 0.5rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
-        }
+        .granule-link { color: #d32f2f; text-decoration: underline; word-break: break-all; cursor: pointer; }
+        .generate-btn { background: #111111; color: #ffffff; border: none; padding: 0.4rem 0.8rem; border-radius: 2px; font-size: 0.75rem; margin-top: 0.5rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; }
         .generate-btn:hover { background: #d32f2f; }
+
+        .remove-btn { position: absolute; top: 4px; right: 4px; color: #d32f2f; cursor: pointer; font-size: 1.5rem; line-height: 1; padding: 0.4rem; background: #fff; border: 1px solid #d32f2f; border-radius: 2px; z-index: 5; }
+        .remove-btn:hover { background: #d32f2f; color: #fff; }
 
         .total-bar { background: #111111; color: #ffffff; padding: 0.75rem; text-align: center; font-size: 1rem; font-weight: bold; margin-top: 0.5rem; display: flex; justify-content: space-around; }
         .total-bar .red-accent { color: #ffffff; }
 
         .col-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #111111; border-bottom: 2px solid #111111; padding-bottom: 0.25rem; margin-bottom: 0.5rem; font-weight: bold; text-align: center; }
+
         .date-input { font-size: 0.7rem; border: 1px solid #ccc; padding: 2px 4px; border-radius: 2px; margin-top: 4px; width: 45%; float: right; margin-left: 10px; }
 
-        .phase-detail { background: #e2e8f0; border: 1px solid #e5e7eb; padding: 1rem; margin-top: 1rem; }
-        .static-plan-header { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #111111; padding-bottom: 1rem; margin-bottom: 2rem; }
-        .phase-block { border-left: 4px solid #d32f2f; padding-left: 1.5rem; margin-bottom: 2.5rem; }
-        .phase-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }
-
+        /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; display: none; align-items: center; justify-content: center; }
         .modal-content { background: #ffffff; border: 1px solid #111; max-width: 600px; width: 90%; padding: 2rem; max-height: 90vh; overflow-y: auto; border-radius: 2px; }
         .modal-field { margin-bottom: 1rem; }
         .modal-field label { display: block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
-        .modal-field input, .modal-field textarea, .modal-field select { width: 100%; border: 1px solid #ccc; padding: 0.5rem; font-size: 0.9rem; }
+        .modal-field input, .modal-field textarea, .modal-field select { width: 100%; border: 1px solid #ccc; padding: 0.5rem; font-size: 0.9rem; box-sizing: border-box; }
         .proforma-output { white-space: pre-wrap; background: #f1f5f9; border: 1px solid #e5e7eb; padding: 1rem; font-family: monospace; font-size: 0.85rem; margin-top: 1rem; }
         .btn-close { background: #111; color: #fff; border: none; padding: 0.5rem 1rem; cursor: pointer; margin-top: 1rem; text-transform: uppercase; font-size: 0.8rem; }
         .btn-close:hover { background: #d32f2f; }
+
+        .static-plan-header { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #111111; padding-bottom: 1rem; margin-bottom: 2rem; }
+        .phase-block { border-left: 4px solid #d32f2f; padding-left: 1.5rem; margin-bottom: 2.5rem; }
+        .phase-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .phase-detail { background: #e2e8f0; border: 1px solid #e5e7eb; padding: 1rem; margin-top: 1rem; }
+
+        .task-scroll { max-height: 70vh; overflow-y: auto; padding-right: 0.5rem; }
+        .task-scroll::-webkit-scrollbar { width: 6px; }
+        .task-scroll::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
+
+        .planner-scroll { max-height: 70vh; overflow-y: auto; padding-right: 0.5rem; }
+        .planner-scroll::-webkit-scrollbar { width: 6px; }
+        .planner-scroll::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
+
+        @media (max-width: 1024px) {
+            .task-scroll, .planner-scroll { max-height: none; }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -70,10 +70,10 @@
     <header class="shrink-0 border-b border-black py-3 bg-white z-10">
         <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
-                <img src="insignia.png" alt="Pascalogix Structura" class="w-12 h-12 md:w-24 md:h-24 rounded-full border border-gray-300">
+                <img src="https://image.qwenlm.ai/public_source/7cb2ab89-08ad-4ea5-94cc-f5f3a8b6f16d/1abe38d30-2b4c-4edc-9fc7-451a3c0fe87b.png" alt="Pascalogix Structura" class="w-12 h-12 md:w-24 md:h-24 rounded-full border border-gray-300">
                 <div>
                     <h1 class="text-lg font-bold tracking-tight uppercase">Pascalogix Structura</h1>
-                    <p class="text-xs text-gray-500">V0.3.2C Drag & Drop Planner</p>
+                    <p class="text-xs text-gray-500">V0.3.2C Atomic TODO Notebook + Proforma Generator</p>
                 </div>
             </div>
             <button onclick="resetPlanner()" class="border border-black px-3 py-1 text-sm uppercase hover:bg-black hover:text-white transition-colors">Reset Planner</button>
@@ -85,49 +85,49 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Task Inventory -->
             <section>
-                <h2 class="col-header">1. Atomic Task Inventory (Drag to Pick)</h2>
-                <div id="task-pool">
+                <h2 class="col-header">1. Atomic Task Inventory (Pick Up Data)</h2>
+                <div class="task-scroll">
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">DTI Registration</h3>
-                    <div class="task-card" id="task-dti1" draggable="true">DTI BNRS Filing | PHP 200-1,000 | Payee: DTI | PERT: 1-3 Days</div>
-                    <div class="task-card" id="task-dti2" draggable="true">DTI Closure (Notice of Dissolution) | PHP 500 | Payee: DTI | PERT: 1-3 Days</div>
-                    <div class="task-card" id="task-dti3" draggable="true">DTI Affidavit Notarization | PHP 200-500 | Payee: Notary</div>
+                    <div class="task-card" id="task-dti1" onclick="pickTask('dti1')">DTI BNRS Filing | PHP 200-1,000 | Payee: DTI | PERT: 1-3 Days</div>
+                    <div class="task-card" id="task-dti2" onclick="pickTask('dti2')">DTI Closure (Notice of Dissolution) | PHP 500 | Payee: DTI | PERT: 1-3 Days</div>
+                    <div class="task-card" id="task-dti3" onclick="pickTask('dti3')">DTI Affidavit Notarization | PHP 200-500 | Payee: Notary</div>
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">BIR Registration</h3>
-                    <div class="task-card" id="task-bir1" draggable="true">BIR COR Form 2303 | PHP 0 (ARF Abolished) | Payee: BIR | PERT: 3-7 Days</div>
-                    <div class="task-card" id="task-bir2" draggable="true">BIR DST | PHP 30 | Payee: BIR</div>
-                    <div class="task-card" id="task-bir3" draggable="true">Books & ATP Printing | PHP 1,000-3,000 | Payee: Accredited Printer</div>
-                    <div class="task-card" id="task-bir4" draggable="true">BIR Tax Clearance (Form 1905) | PHP 100 | Payee: BIR RDO | PERT: 20-30 Days</div>
-                    <div class="task-card" id="task-bir5" draggable="true">BIR Open Cases Settlement | PHP 1,000-5,000 | Payee: BIR</div>
+                    <div class="task-card" id="task-bir1" onclick="pickTask('bir1')">BIR COR Form 2303 | PHP 0 (ARF Abolished) | Payee: BIR | PERT: 3-7 Days</div>
+                    <div class="task-card" id="task-bir2" onclick="pickTask('bir2')">BIR DST | PHP 30 | Payee: BIR</div>
+                    <div class="task-card" id="task-bir3" onclick="pickTask('bir3')">Books & ATP Printing | PHP 1,000-3,000 | Payee: Accredited Printer</div>
+                    <div class="task-card" id="task-bir4" onclick="pickTask('bir4')">BIR Tax Clearance (Form 1905) | PHP 100 | Payee: BIR RDO | PERT: 20-30 Days</div>
+                    <div class="task-card" id="task-bir5" onclick="pickTask('bir5')">BIR Open Cases Settlement | PHP 1,000-5,000 | Payee: BIR</div>
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Professional Renewal</h3>
-                    <div class="task-card" id="task-prc1" draggable="true">PRC LERIS Renewal | PHP 450-1,200 | Payee: PRC | PERT: 1-5 Days</div>
+                    <div class="task-card" id="task-prc1" onclick="pickTask('prc1')">PRC LERIS Renewal | PHP 450-1,200 | Payee: PRC | PERT: 1-5 Days</div>
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">OPC Formation (RA 11232)</h3>
-                    <div class="task-card" id="task-opc1" draggable="true">SEC OPC Filing Fee | PHP 1,000-2,000 | Payee: SEC | PERT: 5-10 Days</div>
-                    <div class="task-card" id="task-opc2" draggable="true">SEC By-Laws & Stock Book | PHP 870 | Payee: SEC</div>
-                    <div class="task-card" id="task-opc3" draggable="true">OPC DST (0.75%) | PHP 188-1,875 | Payee: BIR</div>
-                    <div class="task-card" id="task-opc4" draggable="true">Surety Bond (if self-treasurer) | PHP 5,000-10,000 | Payee: Bond Company</div>
-                    <div class="task-card" id="task-opc5" draggable="true">OPC Notarization | PHP 600-1,500 | Payee: Notary</div>
+                    <div class="task-card" id="task-opc1" onclick="pickTask('opc1')">SEC OPC Filing Fee | PHP 1,000-2,000 | Payee: SEC | PERT: 5-10 Days</div>
+                    <div class="task-card" id="task-opc2" onclick="pickTask('opc2')">SEC By-Laws & Stock Book | PHP 870 | Payee: SEC</div>
+                    <div class="task-card" id="task-opc3" onclick="pickTask('opc3')">OPC DST (0.75%) | PHP 188-1,875 | Payee: BIR</div>
+                    <div class="task-card" id="task-opc4" onclick="pickTask('opc4')">Surety Bond (if self-treasurer) | PHP 5,000-10,000 | Payee: Bond Company</div>
+                    <div class="task-card" id="task-opc5" onclick="pickTask('opc5')">OPC Notarization | PHP 600-1,500 | Payee: Notary</div>
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">IPOPHL & LGU (Early)</h3>
-                    <div class="task-card" id="task-ipo1" draggable="true">IPOPHL Trademark Filing (REN/CORDS) | PHP 1,020 per class | Payee: IPOPHL | PERT: 8-12 mo</div>
-                    <div class="task-card" id="task-ipo2" draggable="true">IPOPHL Assignment Notarization | PHP 300 | Payee: Notary</div>
-                    <div class="task-card" id="task-lgu1" draggable="true">LGU Mayor's Permit | PHP 2,000-5,000 | Payee: LGU</div>
-                    <div class="task-card" id="task-lgu2" draggable="true">Barangay Clearance | PHP 500-1,000 | Payee: Barangay | PERT: 1-3 Days</div>
-                    <div class="task-card" id="task-lgu3" draggable="true">Sanitary Permit | PHP 500-1,500 | Payee: City Health</div>
-                    <div class="task-card" id="task-lgu4" draggable="true">Zoning Clearance | PHP 1,000-2,000 | Payee: Zoning Office | PERT: 5-7 Days</div>
+                    <div class="task-card" id="task-ipo1" onclick="pickTask('ipo1')">IPOPHL Trademark Filing (REN/CORDS) | PHP 1,020 per class | Payee: IPOPHL | PERT: 8-12 mo</div>
+                    <div class="task-card" id="task-ipo2" onclick="pickTask('ipo2')">IPOPHL Assignment Notarization | PHP 300 | Payee: Notary</div>
+                    <div class="task-card" id="task-lgu1" onclick="pickTask('lgu1')">LGU Mayor's Permit | PHP 2,000-5,000 | Payee: LGU</div>
+                    <div class="task-card" id="task-lgu2" onclick="pickTask('lgu2')">Barangay Clearance | PHP 500-1,000 | Payee: Barangay | PERT: 1-3 Days</div>
+                    <div class="task-card" id="task-lgu3" onclick="pickTask('lgu3')">Sanitary Permit | PHP 500-1,500 | Payee: City Health</div>
+                    <div class="task-card" id="task-lgu4" onclick="pickTask('lgu4')">Zoning Clearance | PHP 1,000-2,000 | Payee: Zoning Office | PERT: 5-7 Days</div>
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">Insurance & Royalty</h3>
-                    <div class="task-card" id="task-ins1" draggable="true">E&O Insurance (Team $1M) | PHP 45,000-140,000 | Payee: Insurer</div>
-                    <div class="task-card" id="task-ins2" draggable="true">E&O Insurance (Enterprise $5M+) | PHP 170,000-450,000 | Payee: Insurer</div>
-                    <div class="task-card" id="task-ins3" draggable="true">Royalty Mechanism Trial | PHP 3,000 | Payee: Foundation</div>
+                    <div class="task-card" id="task-ins1" onclick="pickTask('ins1')">E&O Insurance (Team $1M) | PHP 45,000-140,000 | Payee: Insurer</div>
+                    <div class="task-card" id="task-ins2" onclick="pickTask('ins2')">E&O Insurance (Enterprise $5M+) | PHP 170,000-450,000 | Payee: Insurer</div>
+                    <div class="task-card" id="task-ins3" onclick="pickTask('ins3')">Royalty Mechanism Trial | PHP 3,000 | Payee: Foundation</div>
                     <h3 class="text-xs font-bold uppercase text-gray-500 mt-3 mb-1">FellowGrid & Grants</h3>
-                    <div class="task-card" id="task-fg1" draggable="true">100% SPA Execution | PHP 15,000-30,000 | Payee: Legal Counsel</div>
-                    <div class="task-card" id="task-fg2" draggable="true">Non-Stock Foundation Incorporation | PHP 15,000-30,000 | Payee: SEC</div>
-                    <div class="task-card" id="task-fg3" draggable="true">Grant Disbursement Trial | PHP 5,000 | Payee: Foundation</div>
+                    <div class="task-card" id="task-fg1" onclick="pickTask('fg1')">100% SPA Execution | PHP 15,000-30,000 | Payee: Legal Counsel</div>
+                    <div class="task-card" id="task-fg2" onclick="pickTask('fg2')">Non-Stock Foundation Incorporation | PHP 15,000-30,000 | Payee: SEC</div>
+                    <div class="task-card" id="task-fg3" onclick="pickTask('fg3')">Grant Disbursement Trial | PHP 5,000 | Payee: Foundation</div>
                 </div>
             </section>
 
             <!-- RIGHT: Planner -->
             <section>
-                <h2 class="col-header">2. TODO Notebook (Drop Here)</h2>
-                <div class="bg-planner p-4 border border-gray-200 rounded-sm" id="planner-container">
-                    <!-- 26 slots generated dynamically -->
+                <h2 class="col-header">2. TODO Notebook (Click to Drop)</h2>
+                <div class="bg-planner p-4 border border-gray-200 rounded-sm">
+                    <div class="planner-scroll" id="planner-container"></div>
                 </div>
                 <div class="total-bar">
                     <span id="min-display">PHP 0</span>
@@ -138,7 +138,7 @@
         </div>
     </main>
 
-    <!-- STATIC 126-DAY PLAN (same as before) -->
+    <!-- STATIC 126-DAY PLAN -->
     <section class="max-w-7xl w-full mx-auto p-6 border-t border-gray-300 bg-white">
         <div class="static-plan-header">Full Static 126-Day Plan (Overview)</div>
         <div class="phase-block">
@@ -179,7 +179,7 @@
         <p class="text-center text-xs text-gray-500 mt-4">Governance: 70/5/10/15 Cap Table | S61 Firewall | Carved-Out Liability Cap PHP 500k / USD 8,900 | Bifurcated Arbitration: PDRCI Manila / SIAC Singapore | S64 IP Vault</p>
     </section>
 
-    <!-- MODAL FOR PROFORMA GENERATOR (same as before) -->
+    <!-- MODAL FOR PROFORMA GENERATOR -->
     <div id="modalOverlay" class="modal-overlay">
         <div class="modal-content">
             <h2 id="modalTitle" class="text-xl font-bold uppercase mb-4">Generate Proforma</h2>
@@ -190,10 +190,13 @@
         </div>
     </div>
 
+    <footer class="shrink-0 border-t border-gray-300 py-2 text-center bg-white">
+        <p class="text-xs uppercase tracking-widest text-gray-500">Fortitudo • Ordo • Legatum | SHA256: 6128B482</p>
+    </footer>
+
     <script>
-        let draggedTaskId = null;
-        let droppedTasks = [];
-        const totalSlots = 26;
+        let selectedTask = null;
+        let currentModalTask = null;
 
         const tasks = {
             'dti1': { text: 'DTI BNRS Filing', min: 200, max: 1000, atoms: "Trade Name Reservation, DTI Certificate", granules: "DTI BNRS Form, DTI Payment Slip" },
@@ -224,6 +227,9 @@
             'fg3': { text: 'Grant Disbursement Trial', min: 5000, max: 5000, atoms: "Non-Dilutive Grant Disbursement Trial", granules: "Grant Disbursement Ledger, Bank Proof" }
         };
 
+        let droppedTasks = [];
+        const totalSlots = 26;
+
         function getDefaultDate() {
             const today = new Date();
             const yyyy = today.getFullYear();
@@ -239,68 +245,35 @@
                 const slot = document.createElement('div');
                 slot.className = 'planner-slot';
                 slot.id = `slot-${i}`;
-                slot.dataset.slot = i;
-                slot.addEventListener('dragover', handleDragOver);
-                slot.addEventListener('dragleave', handleDragLeave);
-                slot.addEventListener('drop', handleDrop);
+                slot.onclick = () => dropToSlot(i);
                 slot.innerHTML = `<span>Priority ${i+1} - Empty Notebook Slot</span>`;
                 container.appendChild(slot);
             }
         }
 
-        // Drag handlers
-        document.querySelectorAll('.task-card').forEach(card => {
-            card.addEventListener('dragstart', handleDragStart);
-            card.addEventListener('dragend', handleDragEnd);
-        });
-
-        function handleDragStart(e) {
-            draggedTaskId = e.target.id.replace('task-', '');
-            e.dataTransfer.setData('text/plain', draggedTaskId);
-            e.target.classList.add('selected');
+        function pickTask(id) {
+            if(selectedTask) document.getElementById(`task-${selectedTask}`).classList.remove('selected');
+            selectedTask = id;
+            document.getElementById(`task-${id}`).classList.add('selected');
         }
 
-        function handleDragEnd(e) {
-            e.target.classList.remove('selected');
-            draggedTaskId = null;
-        }
+        function dropToSlot(slotId) {
+            if(!selectedTask) { alert("Pick a task from the left first!"); return; }
+            const slot = document.getElementById(`slot-${slotId}`);
+            if(slot.classList.contains('filled')) { alert("This notebook slot is already filled."); return; }
+            const alreadyPlanned = droppedTasks.find(task => task.id === selectedTask);
+            if(alreadyPlanned) { alert("This task is already in the planner. Remove it first."); return; }
 
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
-        }
-
-        function handleDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
-            const taskId = e.dataTransfer.getData('text/plain');
-            const slotId = parseInt(e.currentTarget.dataset.slot);
-            if(!taskId || isNaN(slotId)) return;
-
-            // Check if task already placed
-            if(droppedTasks.find(task => task.id === taskId)) {
-                alert("This task is already in the planner. Remove it first.");
-                return;
-            }
-
-            const slot = e.currentTarget;
-            if(slot.classList.contains('filled')) {
-                alert("This slot is already filled.");
-                return;
-            }
-
-            const data = tasks[taskId];
+            const data = tasks[selectedTask];
             const defaultDate = getDefaultDate();
-            droppedTasks.push({ id: taskId, data: data, slot: slotId });
-            updateSlot(slotId, data, defaultDate, taskId);
+            droppedTasks.push({ id: selectedTask, data: data, slot: slotId });
+            updateSlot(slotId, selectedTask, data, defaultDate);
+            document.getElementById(`task-${selectedTask}`).classList.remove('selected');
+            selectedTask = null;
             updateTotal();
         }
 
-        function updateSlot(slotId, data, dateVal, taskId) {
+        function updateSlot(slotId, taskId, data, dateVal) {
             const slot = document.getElementById(`slot-${slotId}`);
             slot.classList.add('filled');
             slot.innerHTML = `
@@ -352,7 +325,7 @@
             updateTotal();
         }
 
-        // Proforma Generator
+        // PROFORMA GENERATOR LOGIC
         const proformaFields = {
             'dti1': ['Business Name', 'Owner Name', 'Address', 'Territorial Scope'],
             'dti2': ['Business Name', 'Certificate No.', 'Owner Name', 'Reason for Closure'],
@@ -423,6 +396,11 @@
             outputDiv.innerText = output;
             outputDiv.style.display = 'block';
         }
+
+        // Close modal when clicking outside
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if(e.target === this) closeModal();
+        });
 
         initPlanner();
     </script>
